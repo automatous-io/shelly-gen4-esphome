@@ -1,0 +1,110 @@
+#
+# Copyright 2026 AUTOMATOUS.IO
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Shelly 1 Gen4 — full model config: relay, switch input, button, status LED.
+#
+
+substitutions:
+  device_name: "shelly-1-gen4"
+  friendly_name: "Shelly 1 Gen4"
+  relay_mode: "Latch"     # default: Latch or Momentary
+  relay_pulse: "500 ms"   # default: pulse length in Momentary mode
+
+packages:
+  base: !include shelly-gen4-base.yaml
+
+dashboard_import:
+  package_import_url: github://automatous-io/shelly-gen4-esphome/configs/shelly-1-gen4.yaml@main
+  import_full_config: false
+
+switch:
+  - platform: gpio
+    name: "Relay"
+    id: relay_1
+    pin: GPIO5
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - if:
+          condition:
+            lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
+          then:
+            - delay: !lambda |-
+                auto s = id(pulse_select).current_option();
+                if (s == "100 ms") return 100;
+                if (s == "250 ms") return 250;
+                if (s == "500 ms") return 500;
+                if (s == "1 s") return 1000;
+                if (s == "2 s") return 2000;
+                if (s == "5 s") return 5000;
+                return 500;
+            - switch.turn_off: relay_1
+
+select:
+  - platform: template
+    name: "Relay Mode"
+    id: relay_mode_select
+    optimistic: true
+    options:
+      - Latch
+      - Momentary
+    initial_option: ${relay_mode}
+    restore_value: true
+
+  - platform: template
+    name: "Pulse Length"
+    id: pulse_select
+    optimistic: true
+    options:
+      - "100 ms"
+      - "250 ms"
+      - "500 ms"
+      - "1 s"
+      - "2 s"
+      - "5 s"
+    initial_option: ${relay_pulse}
+    restore_value: true
+
+binary_sensor:
+  - platform: gpio
+    name: "Switch Input"
+    pin: GPIO10
+    filters:
+      - delayed_on_off: 50ms
+    on_press:
+      then:
+        - switch.toggle: relay_1
+
+  - platform: gpio
+    name: "Button"
+    pin:
+      number: GPIO4
+      inverted: true
+      mode: INPUT_PULLUP
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - switch.toggle: relay_1
+      - timing:
+          - ON for at least 5s
+        then:
+          - button.press: btn_factory_reset
+
+# Status LED: blinks while Wi-Fi/API are disconnected (setup or reconnecting), off when healthy.
+status_led:
+  pin:
+    number: GPIO15
+    inverted: true

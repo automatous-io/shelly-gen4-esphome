@@ -1,0 +1,64 @@
+#
+# Copyright 2026 AUTOMATOUS.IO
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Shared base for every Shelly Gen4 (ESP-Shelly-C68F (ESP32-C6), 8MB flash).
+#
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  project:
+    name: automatous-io.${device_name}
+    version: "1.0.0"
+
+esp32:
+  board: esp32-c6-devkitm-1
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+      CONFIG_PARTITION_TABLE_OFFSET: "0x10000"
+
+wifi:
+  ap:
+    password: "automatous"
+
+captive_portal:
+
+logger:
+  level: INFO
+  hardware_uart: UART0
+
+api:
+
+ota:
+  platform: esphome
+
+web_server:
+  port: 80
+  version: 2
+
+sensor:
+  - platform: internal_temperature
+    name: "Internal Temperature"
+
+button:
+  - platform: restart
+    name: "Restart"
+  - platform: factory_reset
+    name: "Factory Reset"
+    id: btn_factory_reset
