@@ -1,0 +1,45 @@
+# Build output
+build/
+sdkconfig
+sdkconfig.old
+read-partition-table.bin
+.cache/
+
+# Managed components — downloaded automatically, not committed
+managed_components/
+dependencies.lock
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# VSCode
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# esptool temp files
+*.log
+
+# Sensitive — never commit original firmware backup
+shelly-*-gen4-stock-*.bin
+
+# ESPHome secrets — never commit
+secrets.yaml
+
+# ESPHome build output
+.esphome/
+.installer-*.yaml
+configs/.gitignore
+
+# Compiled artifacts
+automatous-io-shelly-*-gen4-*.bin
+automatous-io-shelly-*-gen4-*.zip
+automatous-io-shelly-*-gen4-*.ota
+
+# IDF component manager
+idf_component_manager.yml
+.idf_component_manager/
