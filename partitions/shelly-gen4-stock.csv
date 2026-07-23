@@ -1,0 +1,9 @@
+# Stock Shelly Gen4 layout (partition table at 0x10000), shared across the Gen4 line with
+# the ESP-Shelly-C68F module. app_0/app_1 are the ESPHome OTA slots; fs_0 stays because the Web UI OTA package
+# requires an fs part.
+# Name,   Type, SubType, Offset,   Size
+otadata,  data, ota,     0x11000,  0x2000,
+nvs,      data, nvs,     0x14000,  0xc000,
+app_0,    app,  ota_0,   0x20000,  0x300000,
+fs_0,     data, spiffs,  0x320000, 0xe0000,
+app_1,    app,  ota_1,   0x400000, 0x300000,
