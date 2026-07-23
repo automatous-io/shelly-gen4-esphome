@@ -62,3 +62,9 @@ button:
   - platform: factory_reset
     name: "Factory Reset"
     id: btn_factory_reset
+
+external_components:
+  - source: github://automatous-io/shelly-gen4-esphome@main
+    components: [shelly_gen4_partition]
+
+shelly_gen4_partition:
