@@ -19,22 +19,30 @@
 substitutions:
   device_name: "shelly-1-gen4"
   friendly_name: "Shelly 1 Gen4"
-  relay_mode: "Latch"     # default: Latch or Momentary
-  relay_pulse: "500 ms"   # default: pulse length in Momentary mode
+  relay_mode: "Latch"     # Latch or Momentary
+  relay_pulse: "500 ms"   # Pulse length in Momentary mode
+  relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
+  input_debounce: "50ms" # Switch input debounce filter
+  log_level: "INFO" # Logger verbosity (DEBUG, VERBOSE for troubleshooting)
+  ap_password: "automatous" # Fallback hotspot password
+  factory_reset_hold: "5s" # Button hold time before factory reset
 
 packages:
   base: !include shelly-gen4-base.yaml
 
+# converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
+# false keeps adopted stubs as references, every rebuild pulls updates from this repo.
 dashboard_import:
   package_import_url: github://automatous-io/shelly-gen4-esphome/configs/shelly-1-gen4.yaml@main
   import_full_config: false
 
+# O terminal relay. In Momentary mode it turns itself back off after the selected pulse.
 switch:
   - platform: gpio
     name: "Relay"
     id: relay_1
     pin: GPIO5
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ${relay_restore}
     on_turn_on:
       - if:
           condition:
@@ -51,6 +59,8 @@ switch:
                 return 500;
             - switch.turn_off: relay_1
 
+# runtime settings, exposed in Home Assistant and on the device web page.
+# substitutions set the initial values; changes made here persist across reboots.
 select:
   - platform: template
     name: "Relay Mode"
@@ -77,15 +87,17 @@ select:
     restore_value: true
 
 binary_sensor:
+  # SW terminal; toggles the relay when the input turns on
   - platform: gpio
     name: "Switch Input"
     pin: GPIO10
     filters:
-      - delayed_on_off: 50ms
+      - delayed_on_off: ${input_debounce}
     on_press:
       then:
         - switch.toggle: relay_1
 
+  # onboard button: short press toggles the relay, long hold factory resets
   - platform: gpio
     name: "Button"
     pin:
@@ -99,7 +111,7 @@ binary_sensor:
         then:
           - switch.toggle: relay_1
       - timing:
-          - ON for at least 5s
+          - ON for at least ${factory_reset_hold}
         then:
           - button.press: btn_factory_reset
 

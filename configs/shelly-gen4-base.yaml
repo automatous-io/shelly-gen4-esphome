@@ -19,10 +19,11 @@
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  # unique name per device out of the box; adoption stubs set their own name and disable this
   name_add_mac_suffix: true
   project:
     name: automatous-io.${device_name}
-    version: "1.0.0"
+    version: "0.0.4"
 
 esp32:
   board: esp32-c6-devkitm-1
@@ -31,23 +32,31 @@ esp32:
     type: esp-idf
     version: recommended
     sdkconfig_options:
+      # stock Shelly keeps the partition table at 0x10000, not IDF's default 0x8000.
+      # without this the firmware installs but cannot find its partitions at boot.
+      # see "The partition system" in README.md
       CONFIG_PARTITION_TABLE_OFFSET: "0x10000"
 
+# fallback hotspot + captive portal for first boot and whenever Wi-Fi is unreachable
 wifi:
   ap:
-    password: "automatous"
+    password: "${ap_password}"
 
 captive_portal:
 
 logger:
-  level: INFO
+  level: ${log_level}
   hardware_uart: UART0
 
+# native Home Assistant API; adoption adds the encryption key in the user's stub
 api:
 
+# updates write only the app image to the inactive app slot; the bootloader and
+# partition table are never rewritten after conversion
 ota:
   platform: esphome
 
+# local device page: entities, logs, and OTA upload at http://<device>.local
 web_server:
   port: 80
   version: 2
@@ -63,8 +72,12 @@ button:
     name: "Factory Reset"
     id: btn_factory_reset
 
+# ships the stock partition table to every build, including adopted/remote builds
+# that have nothing but this repo's URL. removing this breaks every adopted device's
+# next rebuild. see "The partition system" in README.md
 external_components:
   - source: github://automatous-io/shelly-gen4-esphome@main
     components: [shelly_gen4_partition]
+    refresh: 0s  # dev phase. relax to 1d later
 
 shelly_gen4_partition:
