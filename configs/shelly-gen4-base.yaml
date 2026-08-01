@@ -78,6 +78,6 @@ button:
 external_components:
   - source: github://automatous-io/shelly-gen4-esphome@main
     components: [shelly_gen4_partition]
-    refresh: 0s  # dev phase. relax to 1d later
+    refresh: 1d
 
 shelly_gen4_partition:
