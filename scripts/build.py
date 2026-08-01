@@ -18,8 +18,11 @@
 Build flash-ready artifacts for one model in one command.
 
     python3 scripts/build.py shelly-1-gen4
-    -> automatous-io-shelly-1-gen4-esphome-v1.0.0-ota.zip      (stock web UI OTA)
-    -> automatous-io-shelly-1-gen4-esphome-v1.0.0-uart.bin     (UART/esptool full-flash image)
+    -> automatous-io-shelly-1-gen4-esphome-v<version>-ota.zip      (stock web UI OTA)
+    -> automatous-io-shelly-1-gen4-esphome-v<version>-uart.bin     (UART/esptool full-flash image)
+
+The version comes from the base config's project version so artifacts always
+agree with what the repo says; --version overrides it for test builds.
 
 Picks the model config (configs/<model>.yaml), wraps it with the stock partition layout
 in a generated .installer-<model>.yaml, compiles it with ESPHome, and packages the build
@@ -41,6 +44,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ESPHOME_DIR = ROOT / "configs"
+BASE_YAML = ESPHOME_DIR / "shelly-gen4-base.yaml"
 PARTITIONS = "../components/shelly_gen4_partition/shelly-gen4-stock.csv"
 
 INSTALLER_TEMPLATE = """\
@@ -57,6 +61,15 @@ esphome:
 esp32:
   partitions: {partitions}
 """
+
+
+def base_version():
+    # the project version is the only quoted version key in the base yaml;
+    # the framework's "version: recommended" is unquoted and never matches
+    m = re.search(r'^\s*version:\s*"([^"]+)"', BASE_YAML.read_text(), re.M)
+    if not m:
+        sys.exit(f"cannot find a quoted project version in {BASE_YAML}")
+    return m.group(1)
 
 
 def load_zipper():
@@ -104,9 +117,12 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("model", nargs="?", choices=sorted(hardware),
                         help="Shelly model to build (omit to list)")
-    parser.add_argument("--version", default="1.0.0",
-                        help="version stamped into the zip name (default 1.0.0)")
+    parser.add_argument("--version",
+                        help="override the version stamped into the artifacts "
+                             "(default: the base config's project version)")
     args = parser.parse_args()
+    if not args.version:
+        args.version = base_version()
 
     if not args.model:
         list_models(hardware)
