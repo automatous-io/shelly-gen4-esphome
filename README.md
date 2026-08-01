@@ -41,7 +41,7 @@ The project is in beta. Versions stay on 0.0.x while features are added and prov
 
 Firmware is currently distributed as source only. [Build](#building) the artifacts first. A build produces `automatous-io-<model>-esphome-vX.Y.Z-ota.zip` for the stock web UI and `-uart.bin` for esptool over UART.
 
-Web UI: open the Shelly's stock web page, choose to install firmware from a file, and upload the zip. The stock installer verifies it, writes it, and reboots into ESPHome.
+Web UI: open the Shelly's stock web page, choose to install firmware from a file, and upload the zip. The stock installer verifies it, writes it, and reboots into ESPHome. Conversion is tested from stock firmware 1.7.5 and 2.0.0.
 
 UART:
 
@@ -146,7 +146,7 @@ python3 -m venv ~/esphome-venv && source ~/esphome-venv/bin/activate && pip inst
 python3 scripts/build.py shelly-1-gen4
 ```
 
-Both artifacts are written to the repository root, stamped with the base config's project version; `--version` overrides it for test builds. Run `python3 scripts/build.py` with no arguments to list buildable models; `esphome compile configs/shelly-1-gen4.yaml` works for a plain compile check. Every build prints strapping pin warnings for GPIO4, GPIO5, and GPIO15; they are benign, Shelly's hardware dictates those pins.
+Both artifacts are written to the repository root, stamped with the base config's project version; `--version` overrides it for test builds. Builds are verified with ESPHome 2026.7.2. Run `python3 scripts/build.py` with no arguments to list buildable models; `esphome compile configs/shelly-1-gen4.yaml` works for a plain compile check. Every build prints strapping pin warnings for GPIO4, GPIO5, and GPIO15; they are benign, Shelly's hardware dictates those pins.
 
 ---
 
