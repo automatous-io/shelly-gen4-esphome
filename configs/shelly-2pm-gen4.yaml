@@ -1,0 +1,325 @@
+#
+# Copyright 2026 AUTOMATOUS.IO
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Shelly 2PM Gen4 — full model config: two relays, two switch inputs, button,
+# status LED, ADE7953 two-channel power metering, and the onboard NTC.
+#
+
+substitutions:
+  device_name: "shelly-2pm-gen4"
+  friendly_name: "Shelly 2PM Gen4"
+  relay_mode: "Latch"     # Latch or Momentary; starting value for both channels
+  relay_pulse: "500 ms"   # Pulse length in Momentary mode; starting value for both channels
+  relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
+  input_debounce: "50ms" # Switch input debounce filter
+  log_level: "INFO" # Logger verbosity (DEBUG, VERBOSE for troubleshooting)
+  ap_password: "automatous" # Fallback hotspot password
+  factory_reset_hold: "5s" # Button hold time before factory reset
+  power_update_interval: "10s" # How often the power meter publishes
+  ntc_b_constant: "3350" # NTC beta value, estimated
+  # metering calibration, measured on this board against a reference meter at a ~143W
+  # resistive load (PF 1.00), one channel at a time. ESPHome's ADE7953 defaults assume the
+  # Shelly 2.5's shunts, so this board reads current and power about 3.7x low and power
+  # with the sign reversed on both channels. the hardware PGA stays at 1x, which is how
+  # Tasmota runs this chip on Shelly 2PM boards; scaling in software keeps the full input
+  # range for a 10A channel, and the chip's gain registers top out at 2x anyway.
+  current_pga_gain: "1x" # ADE7953 current channel hardware gain, 1x/2x/4x/8x/16x/22x
+  voltage_multiplier: "0.9811" # 119.7V actual / 122.0V reported
+  current_1_multiplier: "3.747" # channel 1 current
+  current_2_multiplier: "3.808" # channel 2 current
+  power_1_multiplier: "-3.679" # channel 1 power, sign reversed
+  power_2_multiplier: "-3.718" # channel 2 power, sign reversed
+
+packages:
+  base: !include shelly-gen4-base.yaml
+
+# converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
+# false keeps adopted stubs as references, every rebuild pulls updates from this repo.
+dashboard_import:
+  package_import_url: github://automatous-io/shelly-gen4-esphome/configs/shelly-2pm-gen4.yaml@main
+  import_full_config: false
+
+# O1 and O2 terminal relays. In Momentary mode each turns itself back off after its pulse.
+switch:
+  - platform: gpio
+    name: "Relay 1"
+    id: relay_1
+    pin: GPIO5
+    restore_mode: ${relay_restore}
+    on_turn_on:
+      - if:
+          condition:
+            lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
+          then:
+            - delay: !lambda |-
+                auto s = id(pulse_select).current_option();
+                if (s == "100 ms") return 100;
+                if (s == "250 ms") return 250;
+                if (s == "500 ms") return 500;
+                if (s == "1 s") return 1000;
+                if (s == "2 s") return 2000;
+                if (s == "5 s") return 5000;
+                return 500;
+            - switch.turn_off: relay_1
+
+  - platform: gpio
+    name: "Relay 2"
+    id: relay_2
+    pin: GPIO3
+    restore_mode: ${relay_restore}
+    on_turn_on:
+      - if:
+          condition:
+            lambda: 'return id(relay_2_mode_select).current_option() == "Momentary";'
+          then:
+            - delay: !lambda |-
+                auto s = id(pulse_2_select).current_option();
+                if (s == "100 ms") return 100;
+                if (s == "250 ms") return 250;
+                if (s == "500 ms") return 500;
+                if (s == "1 s") return 1000;
+                if (s == "2 s") return 2000;
+                if (s == "5 s") return 5000;
+                return 500;
+            - switch.turn_off: relay_2
+
+# runtime settings, exposed in Home Assistant and on the device web page.
+# substitutions set the initial values; changes made here persist across reboots.
+select:
+  - platform: template
+    name: "Relay 1 Mode"
+    id: relay_mode_select
+    optimistic: true
+    options:
+      - Latch
+      - Momentary
+    initial_option: ${relay_mode}
+    restore_value: true
+
+  - platform: template
+    name: "Relay 1 Pulse Length"
+    id: pulse_select
+    optimistic: true
+    options:
+      - "100 ms"
+      - "250 ms"
+      - "500 ms"
+      - "1 s"
+      - "2 s"
+      - "5 s"
+    initial_option: ${relay_pulse}
+    restore_value: true
+
+  - platform: template
+    name: "Relay 2 Mode"
+    id: relay_2_mode_select
+    optimistic: true
+    options:
+      - Latch
+      - Momentary
+    initial_option: ${relay_mode}
+    restore_value: true
+
+  - platform: template
+    name: "Relay 2 Pulse Length"
+    id: pulse_2_select
+    optimistic: true
+    options:
+      - "100 ms"
+      - "250 ms"
+      - "500 ms"
+      - "1 s"
+      - "2 s"
+      - "5 s"
+    initial_option: ${relay_pulse}
+    restore_value: true
+
+binary_sensor:
+  # S1 terminal; toggles relay 1 when the input turns on
+  - platform: gpio
+    name: "Switch Input 1"
+    pin: GPIO11
+    filters:
+      - delayed_on_off: ${input_debounce}
+    on_press:
+      then:
+        - switch.toggle: relay_1
+
+  # S2 terminal; toggles relay 2 when the input turns on
+  - platform: gpio
+    name: "Switch Input 2"
+    pin: GPIO10
+    filters:
+      - delayed_on_off: ${input_debounce}
+    on_press:
+      then:
+        - switch.toggle: relay_2
+
+  # onboard button: short press toggles relay 1, long hold factory resets.
+  # GPIO12 comes from the ESPHome Devices page only; the Tasmota template has no button.
+  - platform: gpio
+    name: "Button"
+    pin:
+      number: GPIO12
+      inverted: true
+      mode: INPUT_PULLUP
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - switch.toggle: relay_1
+      - timing:
+          - ON for at least ${factory_reset_hold}
+        then:
+          - button.press: btn_factory_reset
+
+# ADE7953 power meter on I2C. One voltage channel, two current channels (A = relay 1,
+# B = relay 2). The Tasmota template drives a reset line on GPIO0; the meter comes up fine
+# with that pin left alone, so nothing drives it.
+i2c:
+  id: i2c_ade7953
+  sda: GPIO6
+  scl: GPIO7
+  frequency: 200kHz
+
+sensor:
+  # metering. the chip's gains stay at their defaults; calibration is a multiplier per
+  # reading (see "Calibrating the power meter" in README.md). power comes from the chip's
+  # own register, not from voltage × current, so it carries its own multiplier. the ADE7953
+  # has no energy counter that ESPHome reads out, so energy is integrated from power below.
+  - platform: ade7953_i2c
+    id: ade7953_meter
+    i2c_id: i2c_ade7953
+    irq_pin: GPIO1
+    update_interval: ${power_update_interval}
+    current_pga_gain_a: ${current_pga_gain}
+    current_pga_gain_b: ${current_pga_gain}
+    voltage:
+      name: "Voltage"
+      id: sensor_voltage
+      entity_category: diagnostic
+      filters:
+        - multiply: ${voltage_multiplier}
+    frequency:
+      name: "Frequency"
+      id: sensor_frequency
+      accuracy_decimals: 2
+      entity_category: diagnostic
+    current_a:
+      name: "Current 1"
+      id: sensor_current_1
+      accuracy_decimals: 3
+      filters:
+        - multiply: ${current_1_multiplier}
+    current_b:
+      name: "Current 2"
+      id: sensor_current_2
+      accuracy_decimals: 3
+      filters:
+        - multiply: ${current_2_multiplier}
+    active_power_a:
+      name: "Power 1"
+      id: sensor_power_1
+      filters:
+        - multiply: ${power_1_multiplier}
+    active_power_b:
+      name: "Power 2"
+      id: sensor_power_2
+      filters:
+        - multiply: ${power_2_multiplier}
+
+  # energy, integrated from active power. a relay output cannot feed power back, so the
+  # integrator sees power clamped at zero; otherwise idle noise or a miscalibrated sign
+  # walks the total backwards, which Home Assistant reads as a meter reset. the power
+  # sensors themselves stay unclamped so a reversed channel is still visible. the running
+  # total is kept in flash so it survives reboots; ESPHome batches those writes to at most
+  # one per minute.
+  - platform: copy
+    source_id: sensor_power_1
+    id: power_1_positive
+    internal: true
+    filters:
+      - clamp:
+          min_value: 0
+
+  - platform: copy
+    source_id: sensor_power_2
+    id: power_2_positive
+    internal: true
+    filters:
+      - clamp:
+          min_value: 0
+
+  - platform: integration
+    name: "Energy 1"
+    id: sensor_energy_1
+    sensor: power_1_positive
+    time_unit: h
+    restore: true
+    unit_of_measurement: kWh
+    device_class: energy
+    state_class: total_increasing
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  - platform: integration
+    name: "Energy 2"
+    id: sensor_energy_2
+    sensor: power_2_positive
+    time_unit: h
+    restore: true
+    unit_of_measurement: kWh
+    device_class: energy
+    state_class: total_increasing
+    accuracy_decimals: 3
+    filters:
+      - multiply: 0.001
+
+  # onboard NTC on a 10k divider. the beta value is an estimate, not measured.
+  # the base package's "Internal Temperature" is the ESP32-C6 die sensor, not this one.
+  - platform: ntc
+    name: "Temperature"
+    id: sensor_temperature
+    sensor: temp_resistance
+    entity_category: diagnostic
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    calibration:
+      b_constant: ${ntc_b_constant}
+      reference_resistance: 10kOhm
+      reference_temperature: 25°C
+
+  - platform: resistance
+    id: temp_resistance
+    sensor: temp_voltage
+    configuration: DOWNSTREAM
+    resistor: 10kOhm
+    internal: true
+
+  - platform: adc
+    id: temp_voltage
+    pin: GPIO4
+    attenuation: 12db
+    internal: true
+
+# Status LED: blinks while Wi-Fi/API are disconnected (setup or reconnecting), off when healthy.
+# GPIO18, found by probing every free pin. The Tasmota template's GPIO2 and the ESPHome
+# Devices page's GPIO0 both do nothing on this board.
+status_led:
+  pin:
+    number: GPIO18
+    inverted: true
