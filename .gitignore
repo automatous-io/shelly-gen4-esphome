@@ -36,6 +36,7 @@ secrets.yaml
 configs/.gitignore
 
 # Compiled artifacts
+firmware*.bin
 automatous-io-shelly-*-gen4-*.bin
 automatous-io-shelly-*-gen4-*.zip
 automatous-io-shelly-*-gen4-*.ota

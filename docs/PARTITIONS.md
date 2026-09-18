@@ -44,6 +44,18 @@ The named parts are placed with the old table and read, after reboot, with the n
 
 The UART path (`build.py`'s `-uart.bin`) is the same layout with different delivery: bootloader, table, otadata, and app merged into one image at their real offsets and flashed at 0x0 with esptool.
 
+## The slot rule
+
+The stock firmware keeps two app slots, `app_0` and `app_1`, with a filesystem for each, and its installer always writes to the slot it is not running from. That is standard A/B updating, and it interacts with the zip in one specific way: the table above lists `app_0`, `fs_0`, and `app_1`, but no `fs_1`. So slot 1 is a complete target only under the stock table, and the installer refuses to use it under ours.
+
+A device running stock from slot 1 converts normally. Its installer logs `Will write to slot 0`, accepts the bootloader (`Boot: cur ..., new ..., update? 1`), installs the new table (`Installing new PT0`), stages the bootloader through the app slot (`Installing BL ... -> boot(0)`), writes the app and filesystem, and reboots into ESPHome.
+
+A device running stock from slot 0 does not convert. Its installer logs `Will write to slot 1`, parses the new table, logs `Slot switch is required`, then `Skipping app` and `Skipping fs`, and the upload stalls at 87% with nothing written. The device stays on stock, so the failure is harmless, just confusing.
+
+Adding `fs_1` to the table would not fix this. Shelly's boot selection data in the `otadata` partition uses its own format, which the ESP-IDF bootloader the zip installs treats as invalid, falling back to `app_0`. An install that wrote our app into slot 1 would reboot into the stock app still sitting in slot 0. The zip is therefore an `app_0` conversion by design, and the running slot is the one thing to check before uploading.
+
+Factory firmware ships running from slot 0, and every stock update flips the active slot. Every conversion recorded before this rule was found had taken exactly one stock update first, which is why the web path looked reliable. The fix is procedural: if `Shelly.GetDeviceInfo` reports `slot: 0`, install any stock firmware first, then upload the zip. Both sequences above were captured from a Shelly 2PM Gen4 on stock 1.7.99 factory firmware and 2.0.0 respectively.
+
 ## How every build stays in agreement
 
 Adopted devices rebuild from this repository on machines that have never seen it, so the layout knowledge has to travel with the config. Three pieces carry it.
