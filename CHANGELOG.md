@@ -11,6 +11,55 @@ Versions stay on 0.0.x while the project is in beta.
 
 ---
 
+## 0.0.7
+
+**Shelly 1PM Mini Gen4 — new, working on hardware.**
+
+- Added [`configs/shelly-1pm-mini-gen4.yaml`](configs/shelly-1pm-mini-gen4.yaml): relay, switch
+  input, button, status LED, BL0942 power metering, and the onboard NTC. Entities, selects,
+  substitutions, and stable ids match the 1PM Gen4, so existing `!extend` guidance applies unchanged.
+- Confirmed the full pin map on real hardware: relay GPIO10, switch GPIO12, button GPIO22,
+  status LED GPIO5, NTC GPIO4, BL0942 on TX GPIO20 / RX GPIO19 at 9600 baud.
+- No public pin map exists for this board. The relay, switch, button, LED, and NTC turned out
+  to match the 1 Mini Gen4. The BL0942 does not follow the 1PM Gen4's GPIO6/GPIO7; it was found
+  with a scanner firmware that sends the meter's read command on every free pin pair at each
+  baud rate the chip supports and stops at the first checksum-valid reply.
+- **Stock firmware leaves ESP32-C6 pad hold enabled on the relay and LED pins.** A held pad
+  ignores every write until the device loses power, and a web UI conversion only soft-resets,
+  so after conversion the LED sat solid on and no pin moved the relay or LED, including the
+  correct ones. Reading the hold register (`LP_AON.gpio_hold0`) listed exactly GPIO5 and GPIO10.
+  The config calls `gpio_hold_dis` on both at boot. Whether the other models' stock firmware
+  does the same has not been checked; a power cycle clears it either way.
+- The whole bring-up was done over the stock web UI and OTA with no UART access: a base-only
+  image first to prove conversion, Wi-Fi, and OTA before any pin was configured, then probe
+  builds over OTA.
+- Calibrated the power meter against a reference meter at a ~139W resistive load. ESPHome's
+  stock constants would read about 8.4% low on voltage and 1.7% high on current here. Starting
+  from the 1PM Gen4's references instead:
+
+  | Channel | 1PM Gen4 references | After |
+  |---|---|---|
+  | Voltage | +0.6% | within the reference meter's 1V resolution |
+  | Current | about +1% | +0.4% |
+  | Power | +1.2% | −0.5% |
+  | Frequency | exact | exact |
+
+  The device shows current to two decimals and the reference meter shows whole volts, so the
+  After column is approximate. The two boards' references land within 1% of each other.
+  `power_reference` is left unset as on the 1PM.
+- Added the stock installer hardware code `Mini1PMG4` so `scripts/build.py shelly-1pm-mini-gen4`
+  produces the web UI zip and UART image.
+
+**Documentation**
+
+- README: 1PM Mini in the supported devices table, how its pins were found and the pad hold
+  finding, BL0942 substitution defaults per board, and credits.
+
+**Shelly 1 Gen4, 1PM Gen4, and 2PM Gen4 — no functional change.** Only the version string in
+the shared base package moves.
+
+---
+
 ## 0.0.6
 
 **Shelly 2PM Gen4 — new, working on hardware.**
