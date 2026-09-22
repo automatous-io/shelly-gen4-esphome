@@ -1,0 +1,162 @@
+#
+# Copyright 2026 AUTOMATOUS.IO
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Shelly 1 Mini Gen4 — full model config: relay, switch input, button, status LED,
+# and the onboard NTC.
+#
+
+substitutions:
+  device_name: "shelly-1-mini-gen4"
+  friendly_name: "Shelly 1 Mini Gen4"
+  relay_mode: "Latch"     # Latch or Momentary
+  relay_pulse: "500 ms"   # Pulse length in Momentary mode
+  relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
+  input_debounce: "50ms" # Switch input debounce filter
+  log_level: "INFO" # Logger verbosity (DEBUG, VERBOSE for troubleshooting)
+  ap_password: "automatous" # Fallback hotspot password
+  factory_reset_hold: "5s" # Button hold time before factory reset
+  ntc_b_constant: "3350" # NTC beta value, estimated
+
+packages:
+  base: !include shelly-gen4-base.yaml
+
+# stock firmware leaves pad hold on the relay and LED pins, and it survives the web UI
+# conversion. without this both stay frozen until the device is power-cycled.
+esphome:
+  on_boot:
+    priority: 1000
+    then:
+      - lambda: |-
+          gpio_hold_dis(GPIO_NUM_10);
+          gpio_hold_dis(GPIO_NUM_5);
+
+# converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
+# false keeps adopted stubs as references, every rebuild pulls updates from this repo.
+dashboard_import:
+  package_import_url: github://automatous-io/shelly-gen4-esphome/configs/shelly-1-mini-gen4.yaml@main
+  import_full_config: false
+
+# O terminal relay. In Momentary mode it turns itself back off after the selected pulse.
+switch:
+  - platform: gpio
+    name: "Relay"
+    id: relay_1
+    pin: GPIO10
+    restore_mode: ${relay_restore}
+    on_turn_on:
+      - if:
+          condition:
+            lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
+          then:
+            - delay: !lambda |-
+                auto s = id(pulse_select).current_option();
+                if (s == "100 ms") return 100;
+                if (s == "250 ms") return 250;
+                if (s == "500 ms") return 500;
+                if (s == "1 s") return 1000;
+                if (s == "2 s") return 2000;
+                if (s == "5 s") return 5000;
+                return 500;
+            - switch.turn_off: relay_1
+
+# runtime settings, exposed in Home Assistant and on the device web page.
+# substitutions set the initial values; changes made here persist across reboots.
+select:
+  - platform: template
+    name: "Relay Mode"
+    id: relay_mode_select
+    optimistic: true
+    options:
+      - Latch
+      - Momentary
+    initial_option: ${relay_mode}
+    restore_value: true
+
+  - platform: template
+    name: "Pulse Length"
+    id: pulse_select
+    optimistic: true
+    options:
+      - "100 ms"
+      - "250 ms"
+      - "500 ms"
+      - "1 s"
+      - "2 s"
+      - "5 s"
+    initial_option: ${relay_pulse}
+    restore_value: true
+
+binary_sensor:
+  # SW terminal; toggles the relay when the input turns on
+  - platform: gpio
+    name: "Switch Input"
+    pin: GPIO12
+    filters:
+      - delayed_on_off: ${input_debounce}
+    on_press:
+      then:
+        - switch.toggle: relay_1
+
+  # onboard button: short press toggles the relay, long hold factory resets
+  - platform: gpio
+    name: "Button"
+    pin:
+      number: GPIO22
+      inverted: true
+      mode: INPUT_PULLUP
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - switch.toggle: relay_1
+      - timing:
+          - ON for at least ${factory_reset_hold}
+        then:
+          - button.press: btn_factory_reset
+
+sensor:
+  # onboard NTC on a 10k divider. the beta value is an estimate, not measured.
+  # the base package's "Internal Temperature" is the ESP32-C6 die sensor, not this one.
+  - platform: ntc
+    name: "Temperature"
+    id: sensor_temperature
+    sensor: temp_resistance
+    entity_category: diagnostic
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    calibration:
+      b_constant: ${ntc_b_constant}
+      reference_resistance: 10kOhm
+      reference_temperature: 25°C
+
+  - platform: resistance
+    id: temp_resistance
+    sensor: temp_voltage
+    configuration: DOWNSTREAM
+    resistor: 10kOhm
+    internal: true
+
+  - platform: adc
+    id: temp_voltage
+    pin: GPIO4
+    attenuation: 12db
+    internal: true
+
+# Status LED: blinks while Wi-Fi/API are disconnected (setup or reconnecting), off when healthy.
+status_led:
+  pin:
+    number: GPIO5
+    inverted: true
