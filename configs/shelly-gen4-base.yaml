@@ -23,7 +23,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: automatous-io.${device_name}
-    version: "0.0.7"
+    version: "0.0.8"
 
 esp32:
   board: esp32-c6-devkitm-1
