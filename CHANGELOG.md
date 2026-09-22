@@ -7,7 +7,24 @@ repo-wide: every model shares it, and `project.name` in Home Assistant identifie
 which device a build is for. Each release lists the models it actually affects, so
 a rebuild that only bumps the version string is easy to tell apart from a real change.
 
-Versions stay on 0.0.x while the project is in beta.
+---
+
+## 1.0.0
+
+**First stable release.** No functional change to any model; every config is the 0.0.8 build
+with a new version string.
+
+- Five models verified on real hardware: Shelly 1 Gen4, 1PM Gen4, 1 Mini Gen4, 1PM Mini
+  Gen4, and 2PM Gen4. The 1PM, 1PM Mini, and 2PM meters are calibrated against a reference
+  meter with the constants shipped as substitutions.
+- From this release the stable ids (`relay_1`, `relay_mode_select`, `pulse_select`,
+  `btn_factory_reset`, and the per-model sensor and relay 2 ids), the substitution names, and
+  the package URLs under `configs/` only change with a major version. Adopted stubs tracking
+  `main` keep building.
+- Still limited: every measurement was made at 120V/60Hz on one unit per model. The BL0942
+  models need `line_frequency: "50Hz"` in the stub outside North America; the calibration
+  constants should hold at 230V since the chips are linear, but that is unconfirmed. The NTC
+  beta value is an estimate on every model. No thermal cutoff on the relay yet.
 
 ---
 
