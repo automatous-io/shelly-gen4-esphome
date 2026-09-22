@@ -11,6 +11,35 @@ Versions stay on 0.0.x while the project is in beta.
 
 ---
 
+## 0.0.8
+
+**Shelly 1 Mini Gen4 — new, working on hardware.**
+
+- Added [`configs/shelly-1-mini-gen4.yaml`](configs/shelly-1-mini-gen4.yaml): relay, switch
+  input, button, status LED, and the onboard NTC. Entities, selects, substitutions, and stable
+  ids match the 1PM Mini Gen4 minus the meter, so existing `!extend` guidance applies unchanged.
+- Confirmed the pin map on real hardware: relay GPIO10, switch GPIO12, button GPIO22, status
+  LED GPIO5, NTC GPIO4. It is the 1PM Mini's map without the BL0942, and matches the
+  hardware-verified 1 Mini map in shelly-1-gen4-matter-thread's
+  [GPIO reference](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/GPIO.md).
+- **Stock firmware holds the relay and LED pads on this board too.** A diagnostic build that
+  reads `LP_AON.gpio_hold0` before anything else runs listed exactly GPIO5 and GPIO10 on the
+  first boot after a web UI conversion from stock 2.0.0. The config calls `gpio_hold_dis` on
+  both at boot, as the 1PM Mini does.
+- The NTC uses the 1PM Mini's divider and beta value; it reads a few degrees above the die
+  sensor at idle, the same gap as the 1PM Mini.
+- Closes [#6](../../issues/6).
+
+**Documentation**
+
+- README: 1 Mini in the supported devices table, its pin map source and the pad hold result,
+  and the NTC substitution split out from the metering ones.
+
+**Shelly 1 Gen4, 1PM Gen4, 1PM Mini Gen4, and 2PM Gen4 — no functional change.** Only the
+version string in the shared base package moves.
+
+---
+
 ## 0.0.7
 
 **Shelly 1PM Mini Gen4 — new, working on hardware.**

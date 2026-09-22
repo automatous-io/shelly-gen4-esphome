@@ -34,7 +34,7 @@ The project is in beta. Versions stay on 0.0.x while features are added and prov
 |---|---|---|
 | Shelly 1 Gen4 | [`configs/shelly-1-gen4.yaml`](configs/shelly-1-gen4.yaml) | Working |
 | Shelly 1PM Gen4 | [`configs/shelly-1pm-gen4.yaml`](configs/shelly-1pm-gen4.yaml) | Working |
-| Shelly 1 Mini Gen4 | none yet | Planned, PRs welcome |
+| Shelly 1 Mini Gen4 | [`configs/shelly-1-mini-gen4.yaml`](configs/shelly-1-mini-gen4.yaml) | Working |
 | Shelly 1PM Mini Gen4 | [`configs/shelly-1pm-mini-gen4.yaml`](configs/shelly-1pm-mini-gen4.yaml) | Working |
 | Shelly 2PM Gen4 | [`configs/shelly-2pm-gen4.yaml`](configs/shelly-2pm-gen4.yaml) | Working |
 
@@ -43,6 +43,8 @@ The 1PM's relay, switch input, button, status LED, BL0942 power meter, and NTC a
 The 2PM's two relays, two switch inputs, button, status LED, NTC, and ADE7953 power meter are all confirmed on real hardware, with the meter calibrated per channel. The pin map deserves a note because the public sources disagree with each other and with the board: the [ESPHome Devices page](https://devices.esphome.io/devices/shelly-plus-2pm-gen-4/) contradicts its own YAML, the [Tasmota template](https://templates.blakadder.com/shelly_2PM_gen4.html) has the status LED on GPIO2 and the ESPHome page has it on GPIO0, and it is actually on GPIO18, found by probing every free pin. The config records which source each pin came from.
 
 The 1PM Mini's relay, switch input, button, status LED, BL0942 power meter, and NTC are all confirmed on real hardware. No public pin map exists for this board, so every pin was found on the device. The relay (GPIO10), status LED (GPIO5), switch input (GPIO12), button (GPIO22), and NTC (GPIO4) match the 1 Mini Gen4, but the BL0942 is on TX GPIO20 / RX GPIO19 rather than the 1PM's GPIO6/GPIO7, found by sending the meter's read command on every free pin pair until one answered. This board also showed that stock firmware leaves the ESP32-C6's pad hold enabled on the relay and LED pins. A held pad ignores every write until the device loses power, and a web UI conversion only ever soft-resets, so the relay and LED sat frozen on every pin probe until the hold register was read. The config releases both holds at boot.
+
+The 1 Mini's relay, switch input, button, status LED, and NTC are all confirmed on real hardware. The pin map is the 1PM Mini's without the meter (relay GPIO10, status LED GPIO5, switch input GPIO12, button GPIO22, NTC GPIO4), from shelly-1-gen4-matter-thread's [GPIO reference](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/GPIO.md). Stock firmware holds the relay and LED pads on this board too; the hold register read GPIO5 and GPIO10 on the first boot after a web UI conversion from stock 2.0.0, so the config releases both at boot.
 
 The metering ships with reference constants measured on this board rather than ESPHome's defaults, which read about 9% low here. See [Calibrating the power meter](#calibrating-the-power-meter) for the numbers and how to redo them for your own unit.
 
@@ -94,7 +96,7 @@ The 2PM doubles the controls, with a mode and pulse length select per relay, and
   <img src="docs/images/ha-esphome-shelly-2pm-gen4-3.png" alt="Shelly 2PM Gen4 in Home Assistant: configuration and diagnostic entities including frequency, both temperatures, and voltage" width="326">
 </p>
 
-The device also broadcasts a `dashboard_import` URL, so ESPHome Builder offers to adopt it. Adoption creates a minimal stub in your config directory, roughly (a 1PM, 1PM Mini, or 2PM stub is identical with `shelly-1pm-gen4`, `shelly-1pm-mini-gen4`, or `shelly-2pm-gen4` throughout):
+The device also broadcasts a `dashboard_import` URL, so ESPHome Builder offers to adopt it. Adoption creates a minimal stub in your config directory, roughly (a 1PM, 1 Mini, 1PM Mini, or 2PM stub is identical with `shelly-1pm-gen4`, `shelly-1-mini-gen4`, `shelly-1pm-mini-gen4`, or `shelly-2pm-gen4` throughout):
 
 ```yaml
 substitutions:
@@ -147,12 +149,17 @@ Substitutions supported by every model:
 | `ap_password` | `automatous` | fallback hotspot password |
 | `factory_reset_hold` | `5s` | button hold time before factory reset |
 
-Additionally, for the metering models (`shelly-1pm-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`):
+Additionally, for the models with an NTC (`shelly-1pm-gen4`, `shelly-1-mini-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`):
+
+| Substitution | Default | Meaning |
+|---|---|---|
+| `ntc_b_constant` | `3350` | NTC beta value; adjust to calibrate the temperature reading |
+
+For the metering models (`shelly-1pm-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`):
 
 | Substitution | Default | Meaning |
 |---|---|---|
 | `power_update_interval` | `10s` | how often the power meter publishes |
-| `ntc_b_constant` | `3350` | NTC beta value; adjust to calibrate the temperature reading |
 
 For the 1PM and 1PM Mini (BL0942 meter):
 
@@ -175,7 +182,7 @@ The 2PM has no `line_frequency` setting because the ADE7953 measures mains frequ
 
 Add a substitution to the stub only to change it. A default copied into the stub sticks; the device misses any later change to the default in this repository. Relay mode and pulse length are also select entities in Home Assistant and on the device page; those two substitutions only set starting values.
 
-Beyond substitutions, standard ESPHome package merging applies: dictionaries deep-merge with the stub winning, lists append, and `!extend`/`!remove` reach into the package by id. What your stub merges over is exactly your model's config in [`configs/`](configs) plus the shared [`configs/shelly-gen4-base.yaml`](configs/shelly-gen4-base.yaml), so read those to see everything there is to change. Every model uses the same stable ids for the parts it has — `relay_1`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset` — and metering models add `sensor_voltage`, `sensor_frequency`, and `sensor_temperature`. The 1PM and 1PM Mini have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The 2PM has `relay_2`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
+Beyond substitutions, standard ESPHome package merging applies: dictionaries deep-merge with the stub winning, lists append, and `!extend`/`!remove` reach into the package by id. What your stub merges over is exactly your model's config in [`configs/`](configs) plus the shared [`configs/shelly-gen4-base.yaml`](configs/shelly-gen4-base.yaml), so read those to see everything there is to change. Every model uses the same stable ids for the parts it has — `relay_1`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset` — models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM and 1PM Mini have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The 2PM has `relay_2`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
 
 ```yaml
 switch:
@@ -240,7 +247,7 @@ Both artifacts are written to the repository root, stamped with the base config'
 
 ## Credits
 
-The Shelly 1PM Gen4 config started from the community [Shelly 1PM Gen 4 page](https://devices.esphome.io/devices/shelly-1pm-gen-4/) on ESPHome Devices. The shape of the `bl0942` block, the 9600 baud rate, and the NTC divider chain with its 10k/3350 starting values all come from there. The 2PM Gen4 pin map started from the [Shelly Plus 2PM Gen 4 page](https://devices.esphome.io/devices/shelly-plus-2pm-gen-4/) there and the [Tasmota template](https://templates.blakadder.com/shelly_2PM_gen4.html) on blakadder, decoded against Tasmota's source, then corrected on hardware. The software-scaling approach for its ADE7953 follows the [Power Strip 4 Gen4 calibration fix](https://github.com/esphome/devices.esphome.io/pull/1811). The 1PM Mini Gen4 has no public source; its starting guess was the 1 Mini Gen4 map in shelly-1-gen4-matter-thread's [GPIO reference](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/GPIO.md), which held for everything but the meter.
+The Shelly 1PM Gen4 config started from the community [Shelly 1PM Gen 4 page](https://devices.esphome.io/devices/shelly-1pm-gen-4/) on ESPHome Devices. The shape of the `bl0942` block, the 9600 baud rate, and the NTC divider chain with its 10k/3350 starting values all come from there. The 2PM Gen4 pin map started from the [Shelly Plus 2PM Gen 4 page](https://devices.esphome.io/devices/shelly-plus-2pm-gen-4/) there and the [Tasmota template](https://templates.blakadder.com/shelly_2PM_gen4.html) on blakadder, decoded against Tasmota's source, then corrected on hardware. The software-scaling approach for its ADE7953 follows the [Power Strip 4 Gen4 calibration fix](https://github.com/esphome/devices.esphome.io/pull/1811). The 1PM Mini Gen4 has no public source; its starting guess was the 1 Mini Gen4 map in shelly-1-gen4-matter-thread's [GPIO reference](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/GPIO.md), which held for everything but the meter. The 1 Mini Gen4 config uses that same map directly.
 
 Most of the device-specific knowledge here comes from [shelly-1-gen4-matter-thread](https://github.com/automatous-io/shelly-1-gen4-matter-thread), the Matter over Thread firmware for Shelly Gen4 devices: the stock partition offsets, the GPIO maps, the behavior of the stock installer, and the reversibility testing that established the full chip backup and restore path. Its [Flashing Guide](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/FLASHING.md) and [Reversibility](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/REVERSIBILITY.md) pages cover the UART wiring, flash mode, backup procedure, and test evidence in depth, and apply to this project unchanged.
 
