@@ -16,6 +16,7 @@ Every supported model is verified on real hardware, and the metering models are 
 ## Contents
 
 - [Supported devices](#supported-devices)
+- [GPIO Map](docs/GPIO.md)
 - [Install](#install)
 - [First boot and adoption](#first-boot-and-adoption)
 - [Customizing](#customizing)
@@ -37,6 +38,8 @@ Every supported model is verified on real hardware, and the metering models are 
 | Shelly 1 Mini Gen4 | [`configs/shelly-1-mini-gen4.yaml`](configs/shelly-1-mini-gen4.yaml) | Working |
 | Shelly 1PM Mini Gen4 | [`configs/shelly-1pm-mini-gen4.yaml`](configs/shelly-1pm-mini-gen4.yaml) | Working |
 | Shelly 2PM Gen4 | [`configs/shelly-2pm-gen4.yaml`](configs/shelly-2pm-gen4.yaml) | Working |
+
+The pin assignments for every model are collected in [docs/GPIO.md](docs/GPIO.md).
 
 The 1PM's relay, switch input, button, status LED, BL0942 power meter, and NTC are all confirmed on real hardware. The BL0942 runs at 9600 baud, not the chip's 4800 default, and the status LED is on GPIO11.
 
