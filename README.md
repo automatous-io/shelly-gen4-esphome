@@ -9,7 +9,7 @@
 
 ESPHome firmware install path for Shelly Gen4 devices, built on the ESP-Shelly-C68F module (ESP32-C6, 8MB flash) and deployed through the stock Shelly web UI or over UART. Upload one zip on the device's firmware update page and it reboots into ESPHome. After conversion the device runs on ESPHome with the native Home Assistant API and a local web page.
 
-The project is in beta. Versions stay on 0.0.x while features are added and proven on real hardware, and adopted devices track `main`; changes arrive on your next rebuild.
+Every supported model is verified on real hardware, and the metering models are calibrated against a reference meter. From 1.0.0 the stable ids, substitution names, and package URLs only change with a major version - adopted devices can track `main`; changes arrive on your next rebuild.
 
 ---
 
