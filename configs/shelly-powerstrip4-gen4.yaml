@@ -1,0 +1,220 @@
+#
+# Copyright 2026 AUTOMATOUS.IO
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Shelly Power Strip 4 Gen4
+#
+
+substitutions:
+  device_name: "shelly-pstrip-g4"
+  friendly_name: "Shelly Power Strip 4 Gen4"
+#  relay_mode: "Latch"     # Latch or Momentary
+#  relay_pulse: "500 ms"   # Pulse length in Momentary mode
+  relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
+#  input_debounce: "50ms" # Switch input debounce filter
+  log_level: "INFO" # Logger verbosity (DEBUG, VERBOSE for troubleshooting)
+  ap_password: "automatous" # Fallback hotspot password
+  factory_reset_hold: "5s" # Button hold time before factory reset
+
+packages:
+  base: !include shelly-gen4-base.yaml
+
+# converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
+# false keeps adopted stubs as references, every rebuild pulls updates from this repo.
+dashboard_import:
+  package_import_url: github://automatous-io/shelly-gen4-esphome/configs/shelly-powerstrip4-gen4.yaml@main
+  import_full_config: false
+
+spi:
+  - id: spi_bus
+    clk_pin: 13
+    miso_pin: 12
+    mosi_pin: 11
+
+binary_sensor:
+  - platform: gpio
+    name: Button 1
+    id: button_0
+    internal: true
+    pin:
+      inverted: true
+      mode: INPUT_PULLUP
+      number: 20
+    on_click:
+        then:
+          - switch.toggle: relay_0
+  - platform: gpio
+    name: Button 2
+    id: button_1
+    internal: true
+    pin:
+      inverted: true
+      mode: INPUT_PULLUP
+      number: 22
+    on_click:
+        then:
+          - switch.toggle: relay_1
+  - platform: gpio
+    name: Button 3
+    id: button_2
+    internal: true
+    pin:
+      inverted: true
+      mode: INPUT_PULLUP
+      number: 23
+    on_click:
+        then:
+          - switch.toggle: relay_2
+  - platform: gpio
+    name: Button 4
+    id: button_3
+    internal: true
+    pin:
+      inverted: true
+      mode: INPUT_PULLUP
+      number: 21
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - switch.toggle: relay_3
+      - timing:
+          - ON for at least ${factory_reset_hold}
+        then:
+          - button.press: btn_factory_reset
+
+sensor:
+  - platform: ade7953_spi
+    id: ade7953_0
+    cs_pin: GPIO15    # Outlets 4+3
+    irq_pin: GPIO6
+    update_interval: 10s
+    voltage:
+      name: "Voltage"
+    frequency:
+      name: "AC Frequency"
+    current_a:
+      name: "Outlet 4 Current"
+      filters:
+        - multiply: 4.0
+    current_b:
+      name: "Outlet 3 Current"
+      filters:
+        - multiply: 4.0
+    active_power_a:
+      name: "Outlet 4 Power"
+      filters:
+        - multiply: 4.0
+    active_power_b:
+      name: "Outlet 3 Power"
+      filters:
+        - multiply: -4.0
+
+  - platform: ade7953_spi
+    id: ade7953_1
+    cs_pin: GPIO10    # Outlets 2+1
+    irq_pin: GPIO7
+    update_interval: 10s
+    voltage:
+      name: "Voltage 2"
+      internal: true
+    frequency:
+      name: "AC Frequency 2"
+      internal: true
+    current_a:
+      name: "Outlet 2 Current"
+      filters:
+        - multiply: 4.0
+    current_b:
+      name: "Outlet 1 Current"
+      filters:
+        - multiply: 4.0
+    active_power_a:
+      name: "Outlet 2 Power"
+      filters:
+        - multiply: 4.0
+    active_power_b:
+      name: "Outlet 1 Power"
+      filters:
+        - multiply: -4.0
+
+switch:
+  - platform: gpio
+    name: Outlet 1
+    id: relay_0
+    icon: "mdi:power-socket-eu"
+    pin: 4
+    restore_mode: ${relay_restore}
+  - platform: gpio
+    name: Outlet 2
+    id: relay_1
+    icon: "mdi:power-socket-eu"
+    pin: 2
+    restore_mode: ${relay_restore}
+  - platform: gpio
+    name: Outlet 3
+    id: relay_2
+    icon: "mdi:power-socket-eu"
+    pin: 3
+    restore_mode: ${relay_restore}
+  - platform: gpio
+    name: Outlet 4
+    id: relay_3
+    icon: "mdi:power-socket-eu"
+    pin: 1
+    restore_mode: ${relay_restore}
+    
+light:
+  - platform: esp32_rmt_led_strip
+    id: led_strip
+    name: "LED Strip"
+    pin: GPIO18
+    num_leds: 12
+    chipset: WS2812
+    channel_colors: GRB
+    default_transition_length: 0s
+    internal: true
+
+  - platform: partition
+    id: led_outlet_0
+    name: "Outlet 1 LED"
+    segments:
+      - id: led_strip
+        from: 0
+        to: 2
+
+  - platform: partition
+    id: led_outlet_1
+    name: "Outlet 2 LED"
+    segments:
+      - id: led_strip
+        from: 3
+        to: 5
+
+  - platform: partition
+    id: led_outlet_2
+    name: "Outlet 3 LED"
+    segments:
+      - id: led_strip
+        from: 6
+        to: 8
+
+  - platform: partition
+    id: led_outlet_3
+    name: "Outlet 4 LED"
+    segments:
+      - id: led_strip
+        from: 9
+        to: 11
