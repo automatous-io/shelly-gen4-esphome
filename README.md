@@ -89,10 +89,10 @@ The 1PM adds live metering. Current, power, and energy sit with the controls, an
   <img src="docs/images/ha-esphome-shelly-1pm-gen4-2.png" alt="Shelly 1PM Gen4 in Home Assistant: configuration and diagnostic entities including voltage and frequency" width="253">
 </p>
 
-The 2PM doubles the controls, with a mode and pulse length select per relay, and meters each output separately. Shown here with a 143W resistive load on O2:
+The 2PM doubles the controls, with linking, mode, and pulse length selects per relay, and meters each output separately. Shown here with a 143W resistive load on O2:
 
 <p>
-  <img src="docs/images/ha-esphome-shelly-2pm-gen4-1.png" alt="Shelly 2PM Gen4 in Home Assistant: device info and the two relays with their mode and pulse length selects" width="700">
+  <img src="docs/images/ha-esphome-shelly-2pm-gen4-1.png" alt="Shelly 2PM Gen4 in Home Assistant: device info and the two relays with their linking, mode, and pulse length selects" width="700">
 </p>
 <p>
   <img src="docs/images/ha-esphome-shelly-2pm-gen4-2.png" alt="Shelly 2PM Gen4 in Home Assistant: per-channel current, energy, and power sensors with channel 2 under load, plus the button and switch inputs" width="330">
@@ -144,6 +144,7 @@ Substitutions supported by every model:
 |---|---|---|
 | `device_name` | the model, e.g. `shelly-1-gen4` | node name and hostname base |
 | `friendly_name` | the model, e.g. `Shelly 1 Gen4` | name shown in Home Assistant |
+| `relay_linking` | `Linked` | initial switch input linking, `Linked` or `Unlinked`; stock firmware's detached mode (both channels on the 2PM) |
 | `relay_mode` | `Latch` | initial relay mode, `Latch` or `Momentary` (both channels on the 2PM) |
 | `relay_pulse` | `500 ms` | initial pulse length in Momentary mode (both channels on the 2PM) |
 | `relay_restore` | `RESTORE_DEFAULT_OFF` | relay power-on behavior, also `RESTORE_DEFAULT_ON`, `ALWAYS_OFF`, `ALWAYS_ON` |
@@ -183,9 +184,9 @@ For the 2PM (ADE7953 meter):
 
 The 2PM has no `line_frequency` setting because the ADE7953 measures mains frequency itself; a 50Hz unit reports 50Hz with nothing to configure. The shipped multipliers were measured at 120V and the chip is linear, so they apply at 230V too.
 
-Add a substitution to the stub only to change it. A default copied into the stub sticks; the device misses any later change to the default in this repository. Relay mode and pulse length are also select entities in Home Assistant and on the device page; those two substitutions only set starting values.
+Add a substitution to the stub only to change it. A default copied into the stub sticks; the device misses any later change to the default in this repository. Relay linking, relay mode, and pulse length are also select entities in Home Assistant and on the device page; those three substitutions only set starting values.
 
-Beyond substitutions, standard ESPHome package merging applies: dictionaries deep-merge with the stub winning, lists append, and `!extend`/`!remove` reach into the package by id. What your stub merges over is exactly your model's config in [`configs/`](configs) plus the shared [`configs/shelly-gen4-base.yaml`](configs/shelly-gen4-base.yaml), so read those to see everything there is to change. Every model uses the same stable ids for the parts it has — `relay_1`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset` — models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM and 1PM Mini have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The 2PM has `relay_2`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
+Beyond substitutions, standard ESPHome package merging applies: dictionaries deep-merge with the stub winning, lists append, and `!extend`/`!remove` reach into the package by id. What your stub merges over is exactly your model's config in [`configs/`](configs) plus the shared [`configs/shelly-gen4-base.yaml`](configs/shelly-gen4-base.yaml), so read those to see everything there is to change. Every model uses the same stable ids for the parts it has — `relay_1`, `relay_linking_select`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset` — models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM and 1PM Mini have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The 2PM has `relay_2`, `relay_2_linking_select`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
 
 ```yaml
 switch:
