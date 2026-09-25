@@ -62,7 +62,7 @@ Adopted devices rebuild from this repository on machines that have never seen it
 
 The CSV above is the master copy. The `shelly_gen4_partition` external component registers that CSV as the build's `partitions.csv`, which makes ESPHome skip generating its own table; the base config pulls the component from this repository on GitHub. A fresh machine gets the table as part of the build. And `CONFIG_PARTITION_TABLE_OFFSET: "0x10000"` in the base config is compiled into the bootloader and app so the firmware looks for the table where it actually is.
 
-The failure modes of removing them are asymmetric. Without the component, the build fails outright: ESPHome sizes its auto-generated layout for a table at 0x8000, and with the table pushed to 0x10000 everything slides 64KB up and the last partition runs 64KB past the end of the 8MB chip. That is a build error on the bench, never damage to a device. Without the offset pin, the firmware builds and installs but the bootloader cannot find the table at boot. Both pieces are load-bearing, which is why the README asks you to leave the base's `esp32:` block, `external_components` entry, and `shelly_gen4_partition:` alone.
+The failure modes of removing them are asymmetric. Without the component, the build fails outright: ESPHome sizes its auto-generated layout for a table at 0x8000, and with the table pushed to 0x10000 everything slides 64KB up and the last partition runs 64KB past the end of the 8MB chip. That is a build error on the bench, never damage to a device. Without the offset pin, the firmware builds and installs but the bootloader cannot find the table at boot. Both pieces are load-bearing, which is why [Customizing](CUSTOMIZING.md#package-merging-and-stable-ids) asks you to leave the base's `esp32:` block, `external_components` entry, and `shelly_gen4_partition:` alone.
 
 ## Updates after conversion
 
@@ -70,6 +70,8 @@ ESPHome OTA sends only an app image. The device writes it into whichever 3MB app
 
 ## Related documentation
 
-- [README](../README.md) — project overview, install, and customization
+- [README](../README.md) — project overview and supported devices
+- [Installing](INSTALL.md) — the web UI path and the slot rule in practice
+- [Building](BUILDING.md) — how the layout reaches a local build
 - [Flashing Guide](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/FLASHING.md) — UART wiring, flash mode, and the full-chip backup procedure, from the Matter over Thread project
 - [Reversibility](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/REVERSIBILITY.md) — warranty, factory keys, and restore test evidence, from the Matter over Thread project
