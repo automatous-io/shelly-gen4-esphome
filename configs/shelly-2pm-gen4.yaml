@@ -99,7 +99,7 @@ switch:
 # runtime settings, exposed in Home Assistant and on the device web page.
 # substitutions set the initial values; changes made here persist across reboots.
 select:
-- platform: template
+  - platform: template
     name: "Relay 1 Linking"
     id: relay_linking_select
     optimistic: true
