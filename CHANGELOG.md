@@ -9,6 +9,25 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.1.0
+
+**Detached mode.** The switch input can be unlinked from the relay. The terminal
+reports to Home Assistant without driving the output. Affects all five models.
+
+- New `Relay Linking` select per switch input, `Linked` (default) or `Unlinked`, with a
+  `relay_linking` substitution for the starting value. The 2PM has one per channel and
+  they are independent.
+- Unlinked suppresses only the relay toggle; the Switch Input binary sensor reports as
+  usual, which is what makes it useful as an automation trigger. The onboard button still
+  toggles the relay either way, matching stock.
+- New stable ids: `relay_linking_select`, plus `relay_2_linking_select` on the 2PM.
+  Existing ids, substitution names, and package URLs are unchanged.
+- Verified on the 1 Mini, 1PM, and 2PM. The 1 and 1PM Mini share an identical input
+  block with the 1 Mini.
+- Contributed by @giannello (#11).
+
+---
+
 ## 1.0.0
 
 **First stable release.** No functional change to any model; every config is the 0.0.8 build
