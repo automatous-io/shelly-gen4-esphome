@@ -20,6 +20,7 @@
 substitutions:
   device_name: "shelly-1pm-gen4"
   friendly_name: "Shelly 1PM Gen4"
+  relay_linking: "Linked" # Linked or Unlinked; "Detached mode" in stock firmware
   relay_mode: "Latch"     # Latch or Momentary
   relay_pulse: "500 ms"   # Pulse length in Momentary mode
   relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
@@ -69,6 +70,16 @@ switch:
 # substitutions set the initial values; changes made here persist across reboots.
 select:
   - platform: template
+    name: "Relay Linking"
+    id: relay_linking_select
+    optimistic: true
+    options:
+      - Linked
+      - Unlinked
+    initial_option: ${relay_linking}
+    restore_value: true
+
+  - platform: template
     name: "Relay Mode"
     id: relay_mode_select
     optimistic: true
@@ -93,15 +104,19 @@ select:
     restore_value: true
 
 binary_sensor:
-  # SW terminal; toggles the relay when the input turns on
+  # SW terminal; toggles the relay when the input turns on. Unlinked reports the
+  # input to Home Assistant only, leaving the relay alone.
   - platform: gpio
     name: "Switch Input"
     pin: GPIO10
     filters:
       - delayed_on_off: ${input_debounce}
     on_press:
-      then:
-        - switch.toggle: relay_1
+      - if:
+          condition:
+            lambda: 'return id(relay_linking_select).current_option() == "Linked";'
+          then:
+            - switch.toggle: relay_1
 
   # onboard button: short press toggles the relay, long hold factory resets
   - platform: gpio

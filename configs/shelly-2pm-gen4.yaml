@@ -20,6 +20,7 @@
 substitutions:
   device_name: "shelly-2pm-gen4"
   friendly_name: "Shelly 2PM Gen4"
+  relay_linking: "Linked" # Linked or Unlinked; "Detached mode" in stock firmware
   relay_mode: "Latch"     # Latch or Momentary; starting value for both channels
   relay_pulse: "500 ms"   # Pulse length in Momentary mode; starting value for both channels
   relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
@@ -99,6 +100,16 @@ switch:
 # substitutions set the initial values; changes made here persist across reboots.
 select:
   - platform: template
+    name: "Relay 1 Linking"
+    id: relay_linking_select
+    optimistic: true
+    options:
+      - Linked
+      - Unlinked
+    initial_option: ${relay_linking}
+    restore_value: true
+
+  - platform: template
     name: "Relay 1 Mode"
     id: relay_mode_select
     optimistic: true
@@ -120,6 +131,16 @@ select:
       - "2 s"
       - "5 s"
     initial_option: ${relay_pulse}
+    restore_value: true
+
+  - platform: template
+    name: "Relay 2 Linking"
+    id: relay_2_linking_select
+    optimistic: true
+    options:
+      - Linked
+      - Unlinked
+    initial_option: ${relay_linking}
     restore_value: true
 
   - platform: template
@@ -147,15 +168,20 @@ select:
     restore_value: true
 
 binary_sensor:
-  # S1 terminal; toggles relay 1 when the input turns on
+  # S1 terminal; toggles relay 1 when the input turns on. Unlinked reports the
+  # input to Home Assistant only, leaving the relay alone. Each input has its own
+  # linking select.
   - platform: gpio
     name: "Switch Input 1"
     pin: GPIO11
     filters:
       - delayed_on_off: ${input_debounce}
     on_press:
-      then:
-        - switch.toggle: relay_1
+      - if:
+          condition:
+            lambda: 'return id(relay_linking_select).current_option() == "Linked";'
+          then:
+            - switch.toggle: relay_1
 
   # S2 terminal; toggles relay 2 when the input turns on
   - platform: gpio
@@ -164,8 +190,11 @@ binary_sensor:
     filters:
       - delayed_on_off: ${input_debounce}
     on_press:
-      then:
-        - switch.toggle: relay_2
+      - if:
+          condition:
+            lambda: 'return id(relay_2_linking_select).current_option() == "Linked";'
+          then:
+            - switch.toggle: relay_2
 
   # onboard button: short press toggles relay 1, long hold factory resets.
   # GPIO12 comes from the ESPHome Devices page only; the Tasmota template has no button.
