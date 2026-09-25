@@ -20,7 +20,7 @@
 substitutions:
   device_name: "shelly-1-mini-gen4"
   friendly_name: "Shelly 1 Mini Gen4"
-  relay_linking: "Linked" # Linked or Unlinked
+  relay_linking: "Linked" # Linked or Unlinked; "Detached mode" in stock firmware
   relay_mode: "Latch"     # Latch or Momentary
   relay_pulse: "500 ms"   # Pulse length in Momentary mode
   relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
@@ -110,7 +110,8 @@ select:
     restore_value: true
 
 binary_sensor:
-  # SW terminal; toggles the relay when the input turns on
+  # SW terminal; toggles the relay when the input turns on. Unlinked reports the
+  # input to Home Assistant only, leaving the relay alone.
   - platform: gpio
     name: "Switch Input"
     pin: GPIO12
