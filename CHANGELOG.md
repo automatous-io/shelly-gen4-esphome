@@ -215,7 +215,7 @@ base package moves.
 
 **Documentation**
 
-- Added [Calibrating the power meter](README.md#calibrating-the-power-meter) to the README,
+- Added [Calibrating the Power Meter](docs/CALIBRATION.md) to the documentation,
   covering the arithmetic, the `power_reference` derivation trap, and why a 100W+ resistive
   load is needed.
 - Added Home Assistant screenshots of the 1PM under load.
