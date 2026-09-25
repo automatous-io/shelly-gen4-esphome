@@ -35,6 +35,7 @@ HARDWARE = {
     "shelly-2pm-gen4":    {"app_code": "S2PMG4",  "compatible": "S2PMG4*"},
     "shelly-1-mini-gen4": {"app_code": "Mini1G4", "compatible": "Mini1G4*"},
     "shelly-1pm-mini-gen4": {"app_code": "Mini1PMG4", "compatible": "Mini1PMG4*"},
+    "shelly-powerstrip4-gen4": {"app_code": "PowerStripZB", "compatible": "PowerStripZB*"},
 }
 PLATFORM     = "esp32c6"
 MANIFEST_VER = "99.0.0"
