@@ -76,11 +76,13 @@ The non-metering models and the rest of the entities are in [First Boot and Adop
 
 ## Quick start
 
-Firmware is currently distributed as source only, and the stock web UI needs no UART adapter.
+Prebuilt firmware, and the stock web UI needs no UART adapter. Nothing to compile and no shell, so a Home Assistant OS install is enough.
 
-1. [Build](docs/BUILDING.md) your model. This produces the web UI zip and a UART binary.
+1. Download `automatous-io-<model>-esphome-vX.Y.Z-ota.zip` from the [latest release](../../releases/latest).
 2. [Install it through the stock Shelly web UI](docs/INSTALL.md#stock-web-ui), after [checking the running slot](docs/INSTALL.md#check-the-running-slot-first).
 3. [Join it to Wi-Fi and adopt it](docs/ADOPTION.md) in Home Assistant or ESPHome Builder.
+
+[Building it yourself](docs/BUILDING.md) produces the same zip, plus a UART binary for esptool.
 
 Adoption points a small stub at this repository, so later improvements arrive on your next rebuild with nothing to edit. From 1.0.0 the stable ids, substitution names, and package URLs only change with a major version, so adopted devices can track `main`.
 
@@ -111,7 +113,7 @@ The detail, the dependencies, and what is actually in the way is in the [Roadmap
 
 ## Documentation
 
-Everything is in [`docs/`](docs/), with build [`scripts/`](scripts/) and the changelog at the repo root. The usual path is [Building](docs/BUILDING.md), then [Installing](docs/INSTALL.md), then [First Boot and Adoption](docs/ADOPTION.md).
+Everything is in [`docs/`](docs/), with build [`scripts/`](scripts/) and the changelog at the repo root. The usual path is [Installing](docs/INSTALL.md), then [First Boot and Adoption](docs/ADOPTION.md); [Building](docs/BUILDING.md) is for compiling it yourself instead of downloading.
 
 - [Installing](docs/INSTALL.md) — the web UI path, the slot rule, UART, and backing up stock
 - [First Boot and Adoption](docs/ADOPTION.md) — Wi-Fi setup, what lands in Home Assistant, and the adoption stub
@@ -168,4 +170,6 @@ Most of the device-specific knowledge here comes from [shelly-1-gen4-matter-thre
 
 ## License
 
-Everything in this repository (scripts, configs) is licensed under Apache 2.0. See [LICENSE](LICENSE).
+Everything in this repository (scripts, configs, docs) is licensed under Apache 2.0. See [LICENSE](LICENSE).
+
+The prebuilt firmware on the [releases page](../../releases) is not. Those images are compiled from ESPHome, whose [C++ runtime is GPLv3](https://github.com/esphome/esphome/blob/dev/LICENSE); the images themselves are distributed under the GPLv3. Every release names the ESPHome and ESP-IDF versions it was built with and links this repository at that tag; together those are the corresponding source for the binaries attached to it.

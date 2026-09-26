@@ -2,7 +2,7 @@
 
 **[README](../README.md)** > **Building** · [Report an issue](../../../issues/new)
 
-Firmware is currently distributed as source only, so a build is the first step of an [install](INSTALL.md). Both artifacts are written to the repository root, stamped with the base config's project version.
+Every release ships these artifacts prebuilt; a build is for changing the configs, tracking `main`, or not trusting someone else's binaries. It produces the same files an [install](INSTALL.md) downloads, written to the repository root and stamped with the base config's project version.
 
 ## Contents
 

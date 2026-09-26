@@ -1,0 +1,233 @@
+# Copyright 2026 AUTOMATOUS.IO
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Builds every model from a version tag and attaches the OTA zips, the UART
+# images, and SHA256SUMS to a draft release. The draft stays invisible until it
+# is read over and published by hand.
+#
+# A workflow_dispatch run builds and uploads the same assets as workflow
+# artifacts without touching releases, for testing the pipeline without a tag.
+#
+# Builds run in the digest-pinned ESPHome container from .devcontainer/Dockerfile,
+# read out of that file rather than pinned again here, bumping ESPHome stays a
+# one-file edit and a release is compiled with the toolchain a local build and an
+# adopted device's rebuild use.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  toolchain:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read the pinned builder image
+        id: pin
+        run: |
+          image=$(sed -n 's|^FROM \(ghcr.io/esphome/esphome:.*\)$|\1|p' .devcontainer/Dockerfile)
+          test -n "$image" || { echo "no FROM ghcr.io/esphome/esphome line in .devcontainer/Dockerfile"; exit 1; }
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "building in $image"
+
+  build:
+    needs: toolchain
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.toolchain.outputs.image }}
+    strategy:
+      # one broken model should not hide the state of the other four
+      fail-fast: false
+      matrix:
+        model:
+          - shelly-1-gen4
+          - shelly-1pm-gen4
+          - shelly-2pm-gen4
+          - shelly-1-mini-gen4
+          - shelly-1pm-mini-gen4
+    env:
+      # mirrors the ENV block in .devcontainer/Dockerfile: one cache for the
+      # PlatformIO packages and the native ESP-IDF install
+      PLATFORMIO_PLATFORMS_DIR: /cache/platformio/platforms
+      PLATFORMIO_PACKAGES_DIR: /cache/platformio/packages
+      PLATFORMIO_CACHE_DIR: /cache/platformio/cache
+      ESPHOME_ESP_IDF_PREFIX: /cache/idf
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache the ESP-IDF toolchain
+        uses: actions/cache@v4
+        with:
+          path: /cache
+          key: esphome-toolchain-${{ hashFiles('.devcontainer/Dockerfile') }}
+
+      # build.py shells out to esphome and to esptool as a module; a release that
+      # fails on a missing tool should fail before spending ten minutes compiling
+      - name: Check the toolchain
+        run: |
+          esphome version
+          python3 -m esptool version
+
+      - name: Build ${{ matrix.model }}
+        run: python3 scripts/build.py ${{ matrix.model }}
+
+      # The compiler records the ESPHome and ESP-IDF versions it used. The release
+      # body quotes them as the GPLv3 corresponding-source pointer, so they travel
+      # with the artifacts instead of being retyped.
+      - name: Collect build provenance
+        run: |
+          mkdir -p dist/provenance
+          src=$(find configs/.esphome/build -name project_description.json | head -1)
+          test -n "$src" || { echo "no project_description.json under configs/.esphome/build"; exit 1; }
+          cp "$src" "dist/provenance/${{ matrix.model }}.json"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-${{ matrix.model }}
+          path: |
+            automatous-io-${{ matrix.model }}-esphome-v*-ota.zip
+            automatous-io-${{ matrix.model }}-esphome-v*-uart.bin
+            dist/provenance/${{ matrix.model }}.json
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: firmware-*
+          merge-multiple: true
+          path: dist
+
+      # The artifact filenames carry the base config's project version, globbing
+      # them by tag catches a tag that disagrees with configs/shelly-gen4-base.yaml.
+      # A mismatch means the config or the tag is wrong, never the filename.
+      - name: Check the asset names match the tag
+        run: |
+          models=$(ls dist/provenance/*.json | wc -l)
+          for kind in ota.zip uart.bin; do
+            found=$(ls dist/automatous-io-*-esphome-${GITHUB_REF_NAME}-$kind 2>/dev/null | wc -l)
+            test "$found" -eq "$models" || {
+              echo "$found $kind assets for $GITHUB_REF_NAME but $models models built"; exit 1; }
+          done
+
+      # Shelly's firmware is the one thing that must never be redistributed.
+      # It is gitignored, but release assets do not go through git.
+      - name: Refuse to publish stock firmware
+        run: |
+          if find dist -name "*stock*" | grep .; then
+            echo "stock Shelly firmware in the release assets, refusing to upload"
+            exit 1
+          fi
+
+      - name: Write SHA256SUMS
+        working-directory: dist
+        run: sha256sum automatous-io-*-esphome-v*-ota.zip automatous-io-*-esphome-v*-uart.bin > SHA256SUMS
+
+      # The binaries link ESPHome's C++ runtime, which is GPLv3; every release
+      # has to point at corresponding source. The toolchain versions come from the
+      # builds' provenance; all models must agree or the pointer would be wrong.
+      - name: Write the release body
+        run: |
+          esphome=$(jq -r .project_version dist/provenance/*.json | sort -u)
+          idf=$(jq -r .idf_path dist/provenance/*.json | xargs -n1 basename | sort -u)
+          # a newline in either means the models disagree and the pointer would be wrong
+          test "$(printf %s "$esphome$idf" | wc -l)" -eq 0 || {
+            echo "builds disagree on the toolchain, refusing to write a source pointer:"
+            jq -r '"  \(input_filename): esphome=\(.project_version) idf=\(.idf_path)"' \
+              dist/provenance/*.json
+            exit 1; }
+
+          # the version's section, without the file's own rules or padding
+          awk -v v="## ${GITHUB_REF_NAME#v}" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md \
+            | sed '/^---$/d' | cat -s | sed '/./,$!d' > dist/changes.md
+          test -s dist/changes.md || {
+            echo "CHANGELOG.md has no '## ${GITHUB_REF_NAME#v}' section"; exit 1; }
+
+          cat > dist/notes.md <<'EOF'
+          Prebuilt ESPHome firmware for the Shelly Gen4 models below, each flashed and
+          checked on the physical device before release.
+
+          **Which file do I need?**
+
+          - `*-ota.zip` — upload in the stock Shelly web UI. No wiring, no tools, no build step.
+          - `*-uart.bin` — full-flash image for esptool over UART, for recovery or a bricked device.
+
+          Check your download against `SHA256SUMS`, and follow
+          [docs/INSTALL.md](https://github.com/@REPO@/blob/@TAG@/docs/INSTALL.md) at this tag.
+
+          ## Changes
+
+          @CHANGES@
+
+          ## Build provenance
+
+          - ESPHome @ESPHOME@, in the digest-pinned container from `.devcontainer/Dockerfile`
+          - ESP-IDF @IDF@, as pinned by that ESPHome release
+          - Built from `@TAG@` by `.github/workflows/release.yml`
+
+          ## Licensing
+
+          Repository sources (configs, scripts, docs) are licensed under the Apache License 2.0.
+
+          The firmware images in this release (`*-ota.zip`, `*-uart.bin`) are compiled from
+          ESPHome, whose C++ runtime is GPLv3, **the images themselves are distributed
+          under the GPLv3** even though this repository is Apache 2.0.
+
+          Corresponding source for these builds:
+
+          - ESPHome @ESPHOME@ — https://github.com/esphome/esphome/tree/@ESPHOME@
+          - ESP-IDF @IDF@, as pinned by that ESPHome release
+          - Configs, build scripts, and the pinned build container that produced these
+            images — this repository at [`@TAG@`](https://github.com/@REPO@/tree/@TAG@)
+          - GPLv3 text — https://www.gnu.org/licenses/gpl-3.0.txt
+
+          Not affiliated with or endorsed by Allterco Robotics / Shelly. "Shelly" names the
+          target hardware and nothing more.
+          EOF
+
+          # the heredoc is indented for readability and quoted so backticks survive;
+          # strip the indent, then fill the placeholders in
+          sed -i -e 's/^          //' \
+                 -e "s|@REPO@|${GITHUB_REPOSITORY}|g" \
+                 -e "s|@TAG@|${GITHUB_REF_NAME}|g" \
+                 -e "s|@ESPHOME@|${esphome}|g" \
+                 -e "s|@IDF@|${idf}|g" \
+                 -e '/@CHANGES@/r dist/changes.md' \
+                 -e '/@CHANGES@/d' dist/notes.md
+          cat dist/notes.md
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          body_path: dist/notes.md
+          files: |
+            dist/automatous-io-*-esphome-v*-ota.zip
+            dist/automatous-io-*-esphome-v*-uart.bin
+            dist/SHA256SUMS
