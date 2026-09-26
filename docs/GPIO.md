@@ -13,6 +13,7 @@ Every pin on this page was verified on real hardware. The same map is kept in [s
 - [Shelly 1 Mini Gen4](#shelly-1-mini-gen4)
 - [Shelly 1PM Mini Gen4](#shelly-1pm-mini-gen4)
 - [Shelly 2PM Gen4](#shelly-2pm-gen4)
+- [Shelly Plug US Gen4](#shelly-plug-us-gen4)
 
 ## Shelly 1 Gen4
 
@@ -103,6 +104,23 @@ Verified: September 2026
 Both relays, both switch inputs, the button, status LED, NTC, and ADE7953 power meter are all confirmed on real hardware, with the meter calibrated per channel.
 
 This map deserves a note because the public sources disagree with each other and with the board. The [ESPHome Devices page](https://devices.esphome.io/devices/shelly-plus-2pm-gen-4/) contradicts its own YAML, the [Tasmota template](https://templates.blakadder.com/shelly_2PM_gen4.html) has the status LED on GPIO2 and the ESPHome page has it on GPIO0, and it is actually on GPIO18, found by probing every free pin. [`configs/shelly-2pm-gen4.yaml`](../configs/shelly-2pm-gen4.yaml) records which source each pin came from.
+
+## Shelly Plug US Gen4
+
+Verified: September 2026
+
+| Function | GPIO |
+|---|---|
+| Relay | GPIO4 |
+| Button (onboard) | GPIO7, active-low |
+| LED ring | GPIO6, 12 × WS2812 RGB, GRB data order |
+| Power meter (BL0942) | TX GPIO18, RX GPIO19 with pull-up, UART1, 9600 baud |
+| Light sensor (LTR-329) | SDA GPIO10, SCL GPIO11, I2C address 0x29 |
+| NTC | pending |
+
+The relay, button, LED ring, BL0942 power meter, and light sensor are all confirmed on real hardware. No public pin map exists for this board, every pin was found on the device.
+
+Stock firmware holds the relay pad here as well, the config releases GPIO4 at boot. The BL0942's TX line needs the pull-up on GPIO19; without it the ESP never receives a reply. The light sensor sits behind a dark front window that blocks most visible light, the config scales its lux by a measured window factor and computes lux itself, since ESPHome's formula reads 0 in dim light behind it.
 
 ## Related documentation
 

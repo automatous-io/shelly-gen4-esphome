@@ -2,16 +2,16 @@
 
 **[README](../README.md)** > **Calibrating the Power Meter** · [Report an issue](../../../issues/new)
 
-Applies to the metering models: the 1PM and 1PM Mini with a BL0942, and the 2PM with an ADE7953. Each ships constants measured on real hardware, so this page is optional. Redo it if you want your unit to match your own reference meter.
+Applies to the metering models: the 1PM, 1PM Mini, and Plug US with a BL0942, and the 2PM with an ADE7953. Each ships constants measured on real hardware, so this page is optional. Redo it if you want your unit to match your own reference meter.
 
 ## Contents
 
-- [BL0942: the 1PM and 1PM Mini](#bl0942-the-1pm-and-1pm-mini)
+- [BL0942: the 1PM, 1PM Mini, and Plug US](#bl0942-the-1pm-1pm-mini-and-plug-us)
 - [ADE7953: the 2PM](#ade7953-the-2pm)
 - [Why the shipped values are measured, not inherited](#why-the-shipped-values-are-measured-not-inherited)
 - [Two things](#two-things)
 
-## BL0942: the 1PM and 1PM Mini
+## BL0942: the 1PM, 1PM Mini, and Plug US
 
 The BL0942 reports raw counts that ESPHome divides by a reference constant per channel, so calibration is one division:
 
@@ -35,7 +35,7 @@ The 2PM corrects the scale in software rather than with the chip's 4x hardware g
 
 ## Why the shipped values are measured, not inherited
 
-ESPHome's defaults assume other boards. The 1PM's BL0942 reads about 9% low on voltage and 1% high on current out of the box, and the 1PM Mini's about 8% low and 2% high; the two boards' references land within 1% of each other. The 2PM's ADE7953 reads current and power about 3.7x low with the sign reversed on both channels, because ESPHome's driver was written for the Shelly 2.5 and this board's shunts differ.
+ESPHome's defaults assume other boards. The 1PM's BL0942 reads about 9% low on voltage and 1% high on current out of the box, and the 1PM Mini's about 8% low and 2% high; the two boards' references land within 1% of each other. The Plug US uses a different voltage divider and reads about 58% high on voltage and 1% low on current. The 2PM's ADE7953 reads current and power about 3.7x low with the sign reversed on both channels, because ESPHome's driver was written for the Shelly 2.5 and this board's shunts differ.
 
 Each was measured on one unit against a consumer meter at roughly 140W resistive, so expect to land within a couple of percent rather than exactly on.
 

@@ -9,6 +9,35 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.2.0
+
+**Shelly Plug US Gen4 — new, working on hardware.**
+
+- Added [`configs/shelly-plug-us-gen4.yaml`](configs/shelly-plug-us-gen4.yaml): relay, button,
+  BL0942 power meter, the 12-pixel RGB LED ring, and the LTR-329 light sensor. The web UI zip
+  carries the stock app code `PlugUSG4`.
+- Found every pin on the device, since no public map exists: relay GPIO4, button GPIO7, LED
+  ring GPIO6, BL0942 TX GPIO18 / RX GPIO19, light sensor on I2C at GPIO10/GPIO11. See the
+  [GPIO Map](docs/GPIO.md#shelly-plug-us-gen4).
+- The meter is calibrated against a reference meter (`voltage_reference` 25169.82830,
+  `current_reference` 248840.32040). The BL0942's RX line needs a pull-up on this board.
+- `Relay Linking`, `Relay Mode`, and `Pulse Length` as on the relays. Linking applies to the
+  button, the Plug's only input: `Unlinked` reports presses without toggling the relay.
+- `LED Ring` is a Home Assistant light with color and brightness, and restores its last state
+  after a restart. `Ring Mode` matches stock's LED modes: `Power` (default) colors it green to
+  red by load up to `ring_max_power`, `Relay State` shows green on and red off, and `Manual`
+  leaves it to Home Assistant.
+- The ring blinks blue while Wi-Fi or the API is down, at the same rhythm as the status LED on
+  the other models, then returns to what it was showing.
+- `Illuminance` in lux, calibrated for the dark front window (`window_factor` 2.9), and
+  `Illumination` as `dark`, `twilight`, or `bright` like stock, with `dark_threshold` (5 lx) and
+  `bright_threshold` (100 lx) substitutions. Lux is computed in the config because ESPHome's
+  formula publishes 0 whenever infrared dominates, which the window causes in dim light.
+- Stock firmware holds the relay pad, so the config releases GPIO4 at boot, as on the Minis.
+- Other models are unchanged apart from the version string.
+
+---
+
 ## 1.1.0
 
 **Detached mode.** The switch input can be unlinked from the relay. The terminal

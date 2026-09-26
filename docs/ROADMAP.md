@@ -20,7 +20,7 @@ The shape it would take:
 - A power limit per channel on the metering models, and a temperature limit on every model with an NTC. Substitutions for the build default, plus `number` entities so they are adjustable at runtime without a rebuild.
 - The trip latches. The relay goes off and stays off until it is cleared, so flipping the wall switch does not walk straight back into the fault.
 - A binary sensor for the tripped state and a button to clear it, so automations can see it and Home Assistant can reset it.
-- Per model: the 1PM, 1PM Mini, and 2PM get both halves, the 2PM per channel. The 1 Mini has an NTC but no meter, so it gets the temperature half only. The 1 Gen4 has neither, so it gets nothing.
+- Per model: the 1PM, 1PM Mini, and 2PM get both halves, the 2PM per channel. The Plug US gets the power half. The 1 Mini has an NTC but no meter, so it gets the temperature half only. The 1 Gen4 has neither an NTC nor a meter, so it gets nothing; its Internal Temperature is the ESP32-C6's sensor, which tracks the chip rather than the relay.
 
 **What this is not.** `power_update_interval` defaults to 10s and the meters publish on that cadence, so this is a slow overload and thermal guard measured in seconds, not a circuit breaker. It cannot react to a short, and it replaces neither the breaker in the panel nor correctly rated wiring and a correctly sized load. It is a convenience limit, not a protective device.
 
