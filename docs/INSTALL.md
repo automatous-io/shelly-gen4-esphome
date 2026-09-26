@@ -4,7 +4,7 @@
 
 Two ways in. The stock web UI takes one zip over your existing network and needs no adapter, and UART writes the same image with the device open. Both paths write the same layout; only the delivery differs.
 
-Firmware is currently distributed as source only, so [build](BUILDING.md) the artifacts first. A build produces `automatous-io-<model>-esphome-vX.Y.Z-ota.zip` for the stock web UI and `-uart.bin` for esptool over UART.
+Download both artifacts from the [latest release](../../../releases/latest): `automatous-io-<model>-esphome-vX.Y.Z-ota.zip` for the stock web UI, `-uart.bin` for esptool over UART. Check your download against the release's `SHA256SUMS`. [Building](BUILDING.md) produces the same two files if you would rather compile them.
 
 ## Contents
 
