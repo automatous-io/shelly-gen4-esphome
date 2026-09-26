@@ -208,20 +208,21 @@ script:
           }
           call.perform();
 
-# blinks the ring while Wi-Fi or the API is down, like status_led on the other models,
+# blinks the ring while Wi-Fi or the API is down, at status_led's rhythm on the other models,
 # then puts the ring back as it was
 interval:
   - interval: 100ms
     then:
       - lambda: |-
           static light::LightColorValues saved;
-          bool down = App.get_app_state() & (STATUS_LED_ERROR | STATUS_LED_WARNING);
+          // connection only: other components' transient warnings (the light sensor retrying
+          // a reading) would otherwise blink the ring
+          bool down = !wifi::global_wifi_component->is_connected() || !api::global_api_server->is_connected();
           if (down == id(ring_status_active)) return;
           id(ring_status_active) = down;
           if (down) {
             saved = id(led_ring).remote_values;
             auto call = id(led_ring).make_call();
-            call.set_transition_length(0);
             call.set_save(false);
             call.set_state(true);
             call.set_brightness(0.6f);
@@ -231,7 +232,6 @@ interval:
           }
           // the effect has to be cleared while the light is on, then the saved state restored
           auto clear = id(led_ring).make_call();
-          clear.set_transition_length(0);
           clear.set_save(false);
           clear.set_state(true);
           clear.set_effect("None");
