@@ -32,7 +32,7 @@ substitutions:
   line_frequency: "60Hz" # Mains frequency
   power_update_interval: "10s" # How often the power meter publishes
   light_update_interval: "10s" # How often the light sensor publishes
-  window_factor: "2.9" # Illuminance correction for the front window, measured on this board
+  window_factor: "2.9" # Illuminance multiplier for the light the front window blocks, measured against a light meter
   dark_threshold: "5" # Illumination is dark below this many lux
   bright_threshold: "100" # Illumination is bright above this many lux
   voltage_reference: "25169.82830" # BL0942 voltage scaling, measured on this board

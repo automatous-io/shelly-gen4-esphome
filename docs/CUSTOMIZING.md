@@ -91,7 +91,7 @@ Changing these to match your own unit is [Calibrating the Power Meter](CALIBRATI
 | `ring_mode` | `Power` | initial ring mode, `Power`, `Relay State`, or `Manual`; also a select entity |
 | `ring_max_power` | `1800` | watts at which Power mode turns the ring fully red |
 | `light_update_interval` | `10s` | how often Illuminance publishes |
-| `window_factor` | `2.9` | Illuminance correction for the front window, measured on this board |
+| `window_factor` | `2.9` | Illuminance multiplier for the light the front window blocks, measured against a light meter |
 | `dark_threshold` | `5` | Illumination reads `dark` below this many lux |
 | `bright_threshold` | `100` | Illumination reads `bright` above this many lux |
 

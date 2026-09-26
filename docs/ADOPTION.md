@@ -44,6 +44,8 @@ The 2PM doubles the controls, with linking, mode, and pulse length selects per r
   <img src="images/ha-esphome-shelly-2pm-gen4-3.png" alt="Shelly 2PM Gen4 in Home Assistant: configuration and diagnostic entities including frequency, both temperatures, and voltage" width="326">
 </p>
 
+The Plug US has the 1PM's metering entities and the same linking, mode, and pulse length selects, with the button as the linked input. It adds the `LED Ring` light, a `Ring Mode` select (`Power`, `Relay State`, or `Manual`), `Illuminance` in lux, and `Illumination` as dark, twilight, or bright. The ring blinks blue while Wi-Fi or Home Assistant is disconnected.
+
 ## Adoption and the stub
 
 The device also broadcasts a `dashboard_import` URL, and ESPHome Builder offers to adopt it. Adoption creates a minimal stub in your config directory, roughly (a 1PM, 1 Mini, 1PM Mini, 2PM, or Plug US stub is identical with `shelly-1pm-gen4`, `shelly-1-mini-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`, or `shelly-plug-us-gen4` throughout):
