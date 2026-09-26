@@ -24,6 +24,8 @@ substitutions:
   relay_mode: "Latch"     # Latch or Momentary
   relay_pulse: "500 ms"   # Pulse length in Momentary mode
   relay_restore: "RESTORE_DEFAULT_OFF" # Relay power-on behavior (RESTORE_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, ...)
+  ring_mode: "Power" # Power, Relay State, or Manual; stock's LED modes, Power is stock's default
+  ring_max_power: "1800" # Power mode turns the ring fully red at this many watts
   log_level: "INFO" # Logger verbosity (DEBUG, VERBOSE for troubleshooting)
   ap_password: "automatous" # Fallback hotspot password
   factory_reset_hold: "5s" # Button hold time before factory reset
@@ -43,10 +45,13 @@ packages:
 # conversion. without this the relay stays frozen until the device is power-cycled.
 esphome:
   on_boot:
-    priority: 1000
-    then:
-      - lambda: |-
-          gpio_hold_dis(GPIO_NUM_4);
+    - priority: 1000
+      then:
+        - lambda: |-
+            gpio_hold_dis(GPIO_NUM_4);
+    - priority: -100
+      then:
+        - script.execute: ring_apply
 
 # converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
 # false keeps adopted stubs as references, every rebuild pulls updates from this repo.
@@ -61,7 +66,10 @@ switch:
     id: relay_1
     pin: GPIO4
     restore_mode: ${relay_restore}
+    on_turn_off:
+      - script.execute: ring_apply
     on_turn_on:
+      - script.execute: ring_apply
       - if:
           condition:
             lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
@@ -114,6 +122,21 @@ select:
     initial_option: ${relay_pulse}
     restore_value: true
 
+  # Power colors the ring green to red by load, Relay State shows green on and red off,
+  # Manual leaves the ring to Home Assistant
+  - platform: template
+    name: "Ring Mode"
+    id: ring_mode_select
+    optimistic: true
+    options:
+      - Power
+      - Relay State
+      - Manual
+    initial_option: ${ring_mode}
+    restore_value: true
+    on_value:
+      - script.execute: ring_apply
+
 binary_sensor:
   # onboard button: short press toggles the relay, long hold factory resets.
   # Unlinked reports presses to Home Assistant only, leaving the relay alone.
@@ -148,6 +171,77 @@ light:
     chipset: WS2812
     rgb_order: GRB
     restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      # same rhythm as the status LED on the other models
+      - addressable_lambda:
+          name: "Status Blink"
+          update_interval: 50ms
+          lambda: |-
+            uint32_t now = millis();
+            bool on = (App.get_app_state() & STATUS_LED_ERROR) ? now % 250 < 150 : now % 1500 < 250;
+            it.all() = on ? Color(0, 0, 255) : Color::BLACK;
+
+globals:
+  - id: ring_status_active
+    type: bool
+    initial_value: "false"
+
+script:
+  - id: ring_apply
+    mode: restart
+    then:
+      - lambda: |-
+          auto mode = id(ring_mode_select).current_option();
+          if (mode == "Manual" || id(ring_status_active)) return;
+          bool on = id(relay_1).state;
+          auto call = id(led_ring).make_call();
+          if (mode == "Relay State") {
+            call.set_state(true);
+            call.set_rgb(on ? 0 : 1, on ? 1 : 0, 0);
+          } else if (!on) {
+            call.set_state(false);
+          } else {
+            float p = id(sensor_power).state;
+            float f = std::isnan(p) ? 0.0f : std::clamp(p / (float) ${ring_max_power}, 0.0f, 1.0f);
+            call.set_state(true);
+            call.set_rgb(std::min(1.0f, 2 * f), std::min(1.0f, 2 * (1 - f)), 0);
+          }
+          call.perform();
+
+# blinks the ring while Wi-Fi or the API is down, like status_led on the other models,
+# then puts the ring back as it was
+interval:
+  - interval: 100ms
+    then:
+      - lambda: |-
+          static light::LightColorValues saved;
+          bool down = App.get_app_state() & (STATUS_LED_ERROR | STATUS_LED_WARNING);
+          if (down == id(ring_status_active)) return;
+          id(ring_status_active) = down;
+          if (down) {
+            saved = id(led_ring).remote_values;
+            auto call = id(led_ring).make_call();
+            call.set_transition_length(0);
+            call.set_save(false);
+            call.set_state(true);
+            call.set_brightness(0.6f);
+            call.set_effect("Status Blink");
+            call.perform();
+            return;
+          }
+          // the effect has to be cleared while the light is on, then the saved state restored
+          auto clear = id(led_ring).make_call();
+          clear.set_transition_length(0);
+          clear.set_save(false);
+          clear.set_state(true);
+          clear.set_effect("None");
+          clear.perform();
+          auto restore = id(led_ring).make_call();
+          restore.set_transition_length(0);
+          restore.set_save(false);
+          restore.from_light_color_values(saved);
+          restore.perform();
+          id(ring_apply).execute();
 
 # BL0942 power meter. the logger owns UART0, so this runs on UART1.
 # the meter's TX line needs the pull-up; without it RX idles low and nothing is received.
@@ -183,6 +277,12 @@ sensor:
     power:
       name: "Power"
       id: sensor_power
+      on_value:
+        - if:
+            condition:
+              lambda: 'return id(ring_mode_select).current_option() == "Power";'
+            then:
+              - script.execute: ring_apply
     frequency:
       name: "Frequency"
       id: sensor_frequency

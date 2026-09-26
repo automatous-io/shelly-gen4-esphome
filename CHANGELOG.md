@@ -24,7 +24,11 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 - `Relay Linking`, `Relay Mode`, and `Pulse Length` as on the relays. Linking applies to the
   button, the Plug's only input: `Unlinked` reports presses without toggling the relay.
 - `LED Ring` is a Home Assistant light with color and brightness, and restores its last state
-  after a restart.
+  after a restart. `Ring Mode` matches stock's LED modes: `Power` (default) colors it green to
+  red by load up to `ring_max_power`, `Relay State` shows green on and red off, and `Manual`
+  leaves it to Home Assistant.
+- The ring blinks blue while Wi-Fi or the API is down, at the same rhythm as the status LED on
+  the other models, then returns to what it was showing.
 - `Illuminance` in lux, calibrated for the dark front window (`window_factor` 2.9), and
   `Illumination` as `dark`, `twilight`, or `bright` like stock, with `dark_threshold` (5 lx) and
   `bright_threshold` (100 lx) substitutions. Lux is computed in the config because ESPHome's

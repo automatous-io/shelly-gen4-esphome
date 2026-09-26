@@ -88,6 +88,8 @@ Changing these to match your own unit is [Calibrating the Power Meter](CALIBRATI
 
 | Substitution | Default | Meaning |
 |---|---|---|
+| `ring_mode` | `Power` | initial ring mode, `Power`, `Relay State`, or `Manual`; also a select entity |
+| `ring_max_power` | `1800` | watts at which Power mode turns the ring fully red |
 | `light_update_interval` | `10s` | how often Illuminance publishes |
 | `window_factor` | `2.9` | Illuminance correction for the front window, measured on this board |
 | `dark_threshold` | `5` | Illumination reads `dark` below this many lux |
@@ -97,7 +99,7 @@ Changing these to match your own unit is [Calibrating the Power Meter](CALIBRATI
 
 Standard ESPHome package merging applies: dictionaries deep-merge with the stub winning, lists append, and `!extend`/`!remove` reach into the package by id. What your stub merges over is exactly your model's config in [`configs/`](../configs) plus the shared [`configs/shelly-gen4-base.yaml`](../configs/shelly-gen4-base.yaml), so read those to see everything there is to change.
 
-Every model uses the same stable ids for the parts it has — `relay_1`, `relay_linking_select`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset`. Models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM, 1PM Mini, and Plug US have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The Plug US adds `led_ring`, `sensor_illuminance`, and `illumination`. The 2PM has `relay_2`, `relay_2_linking_select`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
+Every model uses the same stable ids for the parts it has — `relay_1`, `relay_linking_select`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset`. Models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM, 1PM Mini, and Plug US have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The Plug US adds `led_ring`, `ring_mode_select`, `sensor_illuminance`, and `illumination`. The 2PM has `relay_2`, `relay_2_linking_select`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
 
 ```yaml
 switch:

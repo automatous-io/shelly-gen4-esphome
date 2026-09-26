@@ -100,7 +100,7 @@ Adoption points a small stub at this repository, so later improvements arrive on
 - Switch input and onboard button, with configurable debounce and power-on restore behavior.
 - Live metering on the PM models: current, power, energy, voltage, and frequency, calibrated against a reference meter. Energy is a primary sensor so it feeds the Energy Dashboard.
 - The ESP32-C6's internal temperature on every model, plus the board NTC as Temperature where there is one.
-- On the Plug US: the RGB LED ring as a Home Assistant light, and illuminance with a dark / twilight / bright reading.
+- On the Plug US: the RGB LED ring as a Home Assistant light with stock's power and relay state modes, and illuminance with a dark / twilight / bright reading.
 - Factory reset by a 5 second button hold, from Home Assistant, or from the device page.
 - Shelly's stock partition layout preserved, which is what lets the stock installer accept the build.
 
