@@ -76,7 +76,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Cache the ESP-IDF toolchain
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /cache
           key: esphome-toolchain-${{ hashFiles('.devcontainer/Dockerfile') }}
@@ -93,13 +93,14 @@ jobs:
 
       # The compiler records the ESPHome and ESP-IDF versions it used. The release
       # body quotes them as the GPLv3 corresponding-source pointer, so they travel
-      # with the artifacts instead of being retyped.
+      # with the artifacts instead of being retyped. Kept flat beside them: an
+      # artifact preserves the paths it uploads, and a nested copy would land under
+      # dist/dist/ once the release job merges every model into one directory.
       - name: Collect build provenance
         run: |
-          mkdir -p dist/provenance
           src=$(find configs/.esphome/build -name project_description.json | head -1)
           test -n "$src" || { echo "no project_description.json under configs/.esphome/build"; exit 1; }
-          cp "$src" "dist/provenance/${{ matrix.model }}.json"
+          cp "$src" "provenance-${{ matrix.model }}.json"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
@@ -108,7 +109,7 @@ jobs:
           path: |
             automatous-io-${{ matrix.model }}-esphome-v*-ota.zip
             automatous-io-${{ matrix.model }}-esphome-v*-uart.bin
-            dist/provenance/${{ matrix.model }}.json
+            provenance-${{ matrix.model }}.json
           if-no-files-found: error
 
   release:
@@ -129,7 +130,7 @@ jobs:
       # A mismatch means the config or the tag is wrong, never the filename.
       - name: Check the asset names match the tag
         run: |
-          models=$(ls dist/provenance/*.json | wc -l)
+          models=$(ls dist/provenance-*.json | wc -l)
           for kind in ota.zip uart.bin; do
             found=$(ls dist/automatous-io-*-esphome-${GITHUB_REF_NAME}-$kind 2>/dev/null | wc -l)
             test "$found" -eq "$models" || {
@@ -154,13 +155,13 @@ jobs:
       # builds' provenance; all models must agree or the pointer would be wrong.
       - name: Write the release body
         run: |
-          esphome=$(jq -r .project_version dist/provenance/*.json | sort -u)
-          idf=$(jq -r .idf_path dist/provenance/*.json | xargs -n1 basename | sort -u)
+          esphome=$(jq -r .project_version dist/provenance-*.json | sort -u)
+          idf=$(jq -r .idf_path dist/provenance-*.json | xargs -n1 basename | sort -u)
           # a newline in either means the models disagree and the pointer would be wrong
           test "$(printf %s "$esphome$idf" | wc -l)" -eq 0 || {
             echo "builds disagree on the toolchain, refusing to write a source pointer:"
             jq -r '"  \(input_filename): esphome=\(.project_version) idf=\(.idf_path)"' \
-              dist/provenance/*.json
+              dist/provenance-*.json
             exit 1; }
 
           # the version's section, without the file's own rules or padding
