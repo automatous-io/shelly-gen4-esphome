@@ -10,6 +10,7 @@ Your [adoption stub](ADOPTION.md#adoption-and-the-stub) is where customization l
 - [All models](#all-models)
 - [Models with an NTC](#models-with-an-ntc)
 - [Metering models](#metering-models)
+- [Plug US](#plug-us)
 - [Package merging and stable ids](#package-merging-and-stable-ids)
 
 ## Substitutions
@@ -54,19 +55,19 @@ Relay linking, relay mode, and pulse length are also select entities in Home Ass
 
 ## Metering models
 
-`shelly-1pm-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`:
+`shelly-1pm-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`, `shelly-plug-us-gen4`:
 
 | Substitution | Default | Meaning |
 |---|---|---|
 | `power_update_interval` | `10s` | how often the power meter publishes |
 
-The 1PM and 1PM Mini (BL0942 meter):
+The 1PM, 1PM Mini, and Plug US (BL0942 meter):
 
 | Substitution | Default | Meaning |
 |---|---|---|
 | `line_frequency` | `60Hz` | mains frequency, `50Hz` outside North America |
-| `voltage_reference` | `14462.09548` on the 1PM, `14553.25051` on the 1PM Mini | BL0942 voltage scaling, measured on each board |
-| `current_reference` | `253772.51527` on the 1PM, `255278.38517` on the 1PM Mini | BL0942 current scaling, measured on each board |
+| `voltage_reference` | `14462.09548` on the 1PM, `14553.25051` on the 1PM Mini, `25169.82830` on the Plug US | BL0942 voltage scaling, measured on each board |
+| `current_reference` | `253772.51527` on the 1PM, `255278.38517` on the 1PM Mini, `248840.32040` on the Plug US | BL0942 current scaling, measured on each board |
 
 The 2PM (ADE7953 meter):
 
@@ -81,11 +82,22 @@ The 2PM has no `line_frequency` setting because the ADE7953 measures mains frequ
 
 Changing these to match your own unit is [Calibrating the Power Meter](CALIBRATION.md).
 
+## Plug US
+
+`shelly-plug-us-gen4` has no switch input, so its button carries the linking: `Unlinked` reports presses without toggling the relay. It has no `input_debounce` substitution.
+
+| Substitution | Default | Meaning |
+|---|---|---|
+| `light_update_interval` | `10s` | how often Illuminance publishes |
+| `window_factor` | `2.9` | Illuminance correction for the front window, measured on this board |
+| `dark_threshold` | `5` | Illumination reads `dark` below this many lux |
+| `bright_threshold` | `100` | Illumination reads `bright` above this many lux |
+
 ## Package merging and stable ids
 
 Standard ESPHome package merging applies: dictionaries deep-merge with the stub winning, lists append, and `!extend`/`!remove` reach into the package by id. What your stub merges over is exactly your model's config in [`configs/`](../configs) plus the shared [`configs/shelly-gen4-base.yaml`](../configs/shelly-gen4-base.yaml), so read those to see everything there is to change.
 
-Every model uses the same stable ids for the parts it has — `relay_1`, `relay_linking_select`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset`. Models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM and 1PM Mini have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The 2PM has `relay_2`, `relay_2_linking_select`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
+Every model uses the same stable ids for the parts it has — `relay_1`, `relay_linking_select`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset`. Models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM, 1PM Mini, and Plug US have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The Plug US adds `led_ring`, `sensor_illuminance`, and `illumination`. The 2PM has `relay_2`, `relay_2_linking_select`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
 
 ```yaml
 switch:
