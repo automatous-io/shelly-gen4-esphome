@@ -29,10 +29,9 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
   leaves it to Home Assistant.
 - The ring blinks blue while Wi-Fi or the API is down, at the same rhythm as the status LED on
   the other models, then returns to what it was showing.
-- `Illuminance` in lux, calibrated for the dark front window (`window_factor` 2.9), and
+- `Illuminance` in lux, calibrated against a light meter (`illuminance_scale` 2.9), and
   `Illumination` as `dark`, `twilight`, or `bright` like stock, with `dark_threshold` (5 lx) and
-  `bright_threshold` (100 lx) substitutions. Lux is computed in the config because ESPHome's
-  formula publishes 0 whenever infrared dominates, which the window causes in dim light.
+  `bright_threshold` (100 lx) substitutions.
 - Stock firmware holds the relay pad, so the config releases GPIO4 at boot, as on the Minis.
 - Other models are unchanged apart from the version string.
 
