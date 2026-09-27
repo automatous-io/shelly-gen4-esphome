@@ -23,7 +23,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: automatous-io.${device_name}
-    version: "1.4.0"
+    version: "1.4.1"
 
 esp32:
   board: esp32-c6-devkitm-1
@@ -41,6 +41,17 @@ esp32:
 wifi:
   ap:
     password: "${ap_password}"
+  # the Bluetooth scan only runs while Wi-Fi is connected. a continuous scan starves the
+  # hotspot, and joining it fails as if the password were wrong
+  on_connect:
+    - if:
+        condition:
+          switch.is_on: bluetooth_proxy_switch
+        then:
+          - esp32_ble_tracker.start_scan:
+              continuous: true
+  on_disconnect:
+    - esp32_ble_tracker.stop_scan:
 
 captive_portal:
 
@@ -66,12 +77,14 @@ esp32_ble_tracker:
   id: ble_tracker
   scan_parameters:
     active: true
+    continuous: false
 
 bluetooth_proxy:
   active: true
 
 # turns the Bluetooth radio off at runtime. to drop the proxy entirely, !remove both
-# components above and this switch (- id: !remove bluetooth_proxy_switch)
+# components above, this switch (- id: !remove bluetooth_proxy_switch), and wifi's
+# on_connect and on_disconnect
 switch:
   - platform: template
     name: "Bluetooth Proxy"
@@ -88,8 +101,11 @@ switch:
           condition: ble.enabled
           timeout: 5s
       - delay: 100ms
-      - esp32_ble_tracker.start_scan:
-          continuous: true
+      - if:
+          condition: wifi.connected
+          then:
+            - esp32_ble_tracker.start_scan:
+                continuous: true
     turn_off_action:
       - esp32_ble_tracker.stop_scan:
       - wait_until:

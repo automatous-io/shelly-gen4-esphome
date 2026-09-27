@@ -9,6 +9,25 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.4.1
+
+**Fixes the fallback hotspot on 1.4.0.** Affects all seven models; update from 1.4.0.
+
+- On 1.4.0 the Bluetooth scan ran continuously from boot and starved the fallback hotspot.
+  Joining it failed as if the password were wrong, so a fresh conversion could not be set up,
+  and a device that lost Wi-Fi could not be reached through its hotspot.
+- The scan now runs only while Wi-Fi is connected. It starts when Wi-Fi connects, stops when
+  it drops, and the hotspot has the radio to itself. The `Bluetooth Proxy` switch works as
+  before.
+- A 1.4.0 device stuck on its hotspot recovers once the Wi-Fi it knows is back in range; update
+  it to 1.4.1 from there.
+- Dropping the proxy from a build now also removes two Wi-Fi triggers; see
+  [Customizing](docs/CUSTOMIZING.md#package-merging-and-stable-ids).
+- Verified on the Plug US: a fresh web UI conversion joins the hotspot first try, a device that
+  lost Wi-Fi opens its hotspot and captive portal, and the proxy resumes when Wi-Fi returns.
+
+---
+
 ## 1.4.0
 
 **Bluetooth proxy on every model.** The ESP32-C6's Bluetooth radio, unused until now, relays
