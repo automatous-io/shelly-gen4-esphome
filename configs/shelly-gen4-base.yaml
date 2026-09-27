@@ -23,7 +23,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: automatous-io.${device_name}
-    version: "1.3.0"
+    version: "1.4.0"
 
 esp32:
   board: esp32-c6-devkitm-1
@@ -61,9 +61,56 @@ web_server:
   port: 80
   version: 2
 
+# Bluetooth proxy for Home Assistant; active allows connections, not just advertisements
+esp32_ble_tracker:
+  id: ble_tracker
+  scan_parameters:
+    active: true
+
+bluetooth_proxy:
+  active: true
+
+# turns the Bluetooth radio off at runtime. to drop the proxy entirely, !remove both
+# components above and this switch (- id: !remove bluetooth_proxy_switch)
+switch:
+  - platform: template
+    name: "Bluetooth Proxy"
+    id: bluetooth_proxy_switch
+    icon: mdi:bluetooth
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    # the scan must be fully stopped before the radio goes down, or the scanner is left
+    # stuck mid-stop and never restarts after ble.enable
+    turn_on_action:
+      - ble.enable:
+      - wait_until:
+          condition: ble.enabled
+          timeout: 5s
+      - delay: 100ms
+      - esp32_ble_tracker.start_scan:
+          continuous: true
+    turn_off_action:
+      - esp32_ble_tracker.stop_scan:
+      - wait_until:
+          condition:
+            lambda: 'return id(ble_tracker)->get_scanner_state() == esp32_ble_tracker::ScannerState::IDLE;'
+          timeout: 2s
+      - ble.disable:
+
+# free memory sensors below; the proxy is the largest memory user
+debug:
+
 sensor:
   - platform: internal_temperature
     name: "Internal Temperature"
+  - platform: debug
+    free:
+      name: "Free Memory"
+      entity_category: diagnostic
+    block:
+      name: "Largest Free Memory Block"
+      entity_category: diagnostic
 
 button:
   - platform: restart

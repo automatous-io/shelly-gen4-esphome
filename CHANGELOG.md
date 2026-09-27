@@ -9,6 +9,28 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.4.0
+
+**Bluetooth proxy on every model.** The ESP32-C6's Bluetooth radio, unused until now, relays
+nearby Bluetooth devices to Home Assistant. Affects all seven models.
+
+- Home Assistant discovers each device as a Bluetooth adapter and routes every Bluetooth
+  device through whichever adapter hears it best. Active mode, so Home Assistant can also
+  connect through the proxy to devices that need a connection, like locks.
+- New `Bluetooth Proxy` switch, on by default and restored after a restart. Off stops the
+  scan and shuts the Bluetooth stack down at runtime, returning about 55 KB of memory, with
+  no rebuild. To drop the proxy from a build entirely, see
+  [Customizing](docs/CUSTOMIZING.md#package-merging-and-stable-ids).
+- New `Free Memory` and `Largest Free Memory Block` diagnostic sensors on every model.
+- The proxy adds about 600 KB to the app image, which still uses under 55% of the app slot.
+- Adopted devices pick this up on their next rebuild.
+- New stable ids: `ble_tracker` and `bluetooth_proxy_switch`. Existing ids, substitution
+  names, and package URLs are unchanged.
+- Verified on all seven models: the device shows as a Bluetooth adapter, the switch stops and
+  restarts advertisements in real time, and metering, the RTC, and the relays are unaffected.
+
+---
+
 ## 1.3.0
 
 **Shelly EM Mini Gen4 — new, working on hardware.**
