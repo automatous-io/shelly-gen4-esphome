@@ -112,13 +112,16 @@ switch:
     icon: mdi:garage
 ```
 
-The `Bluetooth Proxy` switch turns the proxy off at runtime. To leave it out of the build, remove both components and the switch together; the switch alone fails to compile without them:
+The `Bluetooth Proxy` switch turns the proxy off at runtime. To leave it out of the build, remove both components, the switch, and the Wi-Fi triggers that start and stop the scan together; any one left behind fails to compile without the others:
 
 ```yaml
 esp32_ble_tracker: !remove
 bluetooth_proxy: !remove
 switch:
   - id: !remove bluetooth_proxy_switch
+wifi:
+  on_connect: !remove
+  on_disconnect: !remove
 ```
 
 Leave the base's `esp32:` block, `external_components` entry, and `shelly_gen4_partition:` alone; they are the [partition wiring](PARTITIONS.md).
