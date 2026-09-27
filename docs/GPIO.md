@@ -139,10 +139,11 @@ Verified: September 2026
 | Status LED | GPIO5, active-low |
 | Power meter (BL0942) | TX GPIO20, RX GPIO19 with pull-up, UART1, 9600 baud |
 | NTC | GPIO4 |
+| RTC (PCF8563-compatible) | SDA GPIO10, SCL GPIO11, I2C address 0x51, coin cell backup |
 
-The button, status LED, BL0942 power meter, and NTC are all confirmed on real hardware, every pin found on the device. They match the 1PM Mini Gen4 without the relay and switch input. The meter reads current through the included CT clamp.
+The button, status LED, BL0942 power meter, NTC, and RTC are all confirmed on real hardware, every pin found on the device. The first four match the 1PM Mini Gen4 without the relay and switch input. The meter reads current through the included CT clamp.
 
-Stock firmware holds the LED pad, and the config releases GPIO5 at boot. Other public configs put the NTC on GPIO3, as on the Plus Minis; on this board GPIO4 reads 2 °C above the ESP32-C6 at idle and GPIO3 reads 17 °C above it. Nothing answers on I2C at GPIO10/GPIO11, where one of those configs lists an RTC. The stock flash layout differs from the rest of the line; see [The Partition System](PARTITIONS.md#the-em-mini-layout).
+Stock firmware holds the LED pad, and the config releases GPIO5 at boot. Other public configs put the NTC on GPIO3, as on the Plus Minis; on this board GPIO4 reads 2 °C above the ESP32-C6 at idle and GPIO3 reads 17 °C above it. The RTC's coin cell sits on a connector and can come loose in shipping; with it disconnected the clock resets at power loss, and with it seated the clock kept time through a power cut. The stock flash layout differs from the rest of the line; see [The Partition System](PARTITIONS.md#the-em-mini-layout).
 
 ## Related documentation
 

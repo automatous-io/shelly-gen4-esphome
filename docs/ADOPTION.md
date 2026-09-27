@@ -54,7 +54,7 @@ The Plug US has the 1PM's metering entities and the same linking, mode, and puls
   <img src="images/ha-esphome-shelly-plug-us-gen4-3.png" alt="Shelly Plug US Gen4 in Home Assistant: diagnostic entities, frequency, internal temperature, and voltage" width="329">
 </p>
 
-The EM Mini has the 1PM's metering entities and a `Button` sensor, with no relay or selects.
+The EM Mini has the 1PM's metering entities and a `Button` sensor, with no relay or selects. `RTC Time` is diagnostic and shows what the battery-backed clock holds, or `not set` if it lost power.
 
 ## Adoption and the stub
 

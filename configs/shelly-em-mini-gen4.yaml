@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 # Shelly EM Mini Gen4 — full model config: button, status LED, BL0942 power metering
-# through the CT clamp, and the onboard NTC.
+# through the CT clamp, the onboard NTC, and the battery-backed RTC.
 #
 
 substitutions:
@@ -40,10 +40,14 @@ shelly_gen4_partition:
 # conversion. without this the LED stays frozen until the device is power-cycled.
 esphome:
   on_boot:
-    priority: 1000
-    then:
-      - lambda: |-
-          gpio_hold_dis(GPIO_NUM_5);
+    - priority: 1000
+      then:
+        - lambda: |-
+            gpio_hold_dis(GPIO_NUM_5);
+    # the clock is valid from boot, before Wi-Fi or Home Assistant connect
+    - priority: 600
+      then:
+        - pcf8563.read_time: rtc_time
 
 # converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
 # false keeps adopted stubs as references, every rebuild pulls updates from this repo.
@@ -66,6 +70,52 @@ binary_sensor:
           - ON for at least ${factory_reset_hold}
         then:
           - button.press: btn_factory_reset
+
+# PCF8563-compatible RTC with a coin cell backup, keeps time while unplugged
+i2c:
+  id: i2c_rtc
+  sda: GPIO10
+  scl: GPIO11
+
+time:
+  - platform: pcf8563
+    id: rtc_time
+    address: 0x51
+    update_interval: never
+  # Home Assistant corrects the RTC on every sync
+  - platform: homeassistant
+    id: ha_time
+    on_time_sync:
+      then:
+        - pcf8563.write_time: rtc_time
+
+text_sensor:
+  # what the RTC chip itself holds, read from its registers in local time. rtc_time.now()
+  # would return the system clock instead. "not set" means the chip lost power; check the coin cell.
+  - platform: template
+    name: "RTC Time"
+    id: rtc_time_text
+    entity_category: diagnostic
+    icon: "mdi:clock-outline"
+    update_interval: 60s
+    lambda: |-
+      uint8_t reg = 0x02, r[7];
+      if (id(i2c_rtc)->write_readv(0x51, &reg, 1, r, 7) != i2c::ERROR_OK)
+        return std::string("unavailable");
+      if (r[0] & 0x80)
+        return std::string("not set");
+      auto bcd = [](uint8_t v) { return (v >> 4) * 10 + (v & 0x0F); };
+      ESPTime t{};
+      t.second = bcd(r[0] & 0x7F);
+      t.minute = bcd(r[1] & 0x7F);
+      t.hour = bcd(r[2] & 0x3F);
+      t.day_of_month = bcd(r[3] & 0x3F);
+      t.day_of_week = (r[4] & 0x07) + 1;
+      t.month = bcd(r[5] & 0x1F);
+      t.year = 2000 + bcd(r[6]);
+      t.day_of_year = 1;
+      t.recalc_timestamp_utc(false);
+      return ESPTime::from_epoch_local(t.timestamp).strftime("%Y-%m-%d %H:%M:%S");
 
 # BL0942 power meter. the logger owns UART0, so this runs on UART1.
 # 9600 baud, not the chip's 4800 default; a mismatch logs "BL0942 setup failed!" at boot.

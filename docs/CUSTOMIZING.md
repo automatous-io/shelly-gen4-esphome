@@ -98,7 +98,7 @@ Changing these to match your own unit is [Calibrating the Power Meter](CALIBRATI
 
 ## EM Mini
 
-`shelly-em-mini-gen4` has no relay or switch input, so none of the relay substitutions or `input_debounce` apply. Its button reports to Home Assistant, and a long hold factory resets.
+`shelly-em-mini-gen4` has no relay or switch input, so none of the relay substitutions or `input_debounce` apply. Its button reports to Home Assistant, and a long hold factory resets. The RTC is `rtc_time` on the `i2c_rtc` bus, set from `ha_time`, and shown as `rtc_time_text`.
 
 ## Package merging and stable ids
 
