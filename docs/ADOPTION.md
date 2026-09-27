@@ -44,7 +44,15 @@ The 2PM doubles the controls, with linking, mode, and pulse length selects per r
   <img src="images/ha-esphome-shelly-2pm-gen4-3.png" alt="Shelly 2PM Gen4 in Home Assistant: configuration and diagnostic entities including frequency, both temperatures, and voltage" width="326">
 </p>
 
-The Plug US has the 1PM's metering entities and the same linking, mode, and pulse length selects, with the button as the linked input. It adds the `LED Ring` light, a `Ring Mode` select (`Power`, `Relay State`, or `Manual`), `Illuminance` in lux, and `Illumination` as dark, twilight, or bright. The ring blinks blue while Wi-Fi or Home Assistant is disconnected.
+The Plug US has the 1PM's metering entities and the same linking, mode, and pulse length selects, with the button as the linked input. It adds the `LED Ring` light, a `Ring Mode` select (`Power`, `Relay State`, or `Manual`), `Illuminance` in lux, and `Illumination` as dark, twilight, or bright. The ring blinks blue while Wi-Fi or Home Assistant is disconnected. Shown here with a 141W resistive load:
+
+<p>
+  <img src="images/ha-esphome-shelly-plug-us-gen4-1.png" alt="Shelly Plug US Gen4 in Home Assistant: device info and controls, with the LED Ring light, the relay, and the linking, mode, pulse length, and ring mode selects" width="700">
+</p>
+<p>
+  <img src="images/ha-esphome-shelly-plug-us-gen4-2.png" alt="Shelly Plug US Gen4 in Home Assistant: button, current, energy, illuminance, illumination, and power sensors under a 141W load" width="330">
+  <img src="images/ha-esphome-shelly-plug-us-gen4-3.png" alt="Shelly Plug US Gen4 in Home Assistant: diagnostic entities, frequency, internal temperature, and voltage" width="329">
+</p>
 
 ## Adoption and the stub
 
