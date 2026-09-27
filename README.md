@@ -46,6 +46,7 @@ Every supported model is verified on real hardware, and the metering models are 
 | Shelly 1PM Mini Gen4 | [`configs/shelly-1pm-mini-gen4.yaml`](configs/shelly-1pm-mini-gen4.yaml) | Working |
 | Shelly 2PM Gen4 | [`configs/shelly-2pm-gen4.yaml`](configs/shelly-2pm-gen4.yaml) | Working |
 | Shelly Plug US Gen4 | [`configs/shelly-plug-us-gen4.yaml`](configs/shelly-plug-us-gen4.yaml) | Working |
+| Shelly EM Mini Gen4 | [`configs/shelly-em-mini-gen4.yaml`](configs/shelly-em-mini-gen4.yaml) | Working |
 
 Pin assignments for every model, and the hardware findings behind them, are in the [GPIO Map](docs/GPIO.md).
 
@@ -98,7 +99,7 @@ Adoption points a small stub at this repository, so later improvements arrive on
 - ESPHome Builder adoption, with this repository as the update channel.
 - Relay linking, latch or momentary mode, and pulse length, as Home Assistant selects and as build-time defaults.
 - Switch input and onboard button, with configurable debounce and power-on restore behavior.
-- Live metering on the PM models and the Plug US: current, power, energy, voltage, and frequency, calibrated against a reference meter. Energy is a primary sensor so it feeds the Energy Dashboard.
+- Live metering on the PM models, the Plug US, and the EM Mini through its CT clamp: current, power, energy, voltage, and frequency, calibrated against a reference meter. Energy is a primary sensor so it feeds the Energy Dashboard.
 - The ESP32-C6's internal temperature on every model, plus the board NTC as Temperature where there is one.
 - On the Plug US: the RGB LED ring as a Home Assistant light with stock's power and relay state modes, and illuminance with a dark / twilight / bright reading.
 - Factory reset by a 5 second button hold, from Home Assistant, or from the device page.
@@ -140,7 +141,7 @@ shelly-gen4-esphome/
 ├── docs/              Documentation and the images it references.
 ├── scripts/           Build script and the stock web UI zip packager.
 ├── components/
-│   └── shelly_gen4_partition/   External component that ships Shelly's stock partition table.
+│   └── shelly_gen4_partition/   External component that ships Shelly's stock partition tables.
 └── configs/
     ├── shelly-gen4-base.yaml    Shared base: ESP32-C6, partitions, API, web server, OTA.
     ├── shelly-1-gen4.yaml       Relay, switch input, button, status LED.
@@ -148,7 +149,8 @@ shelly-gen4-esphome/
     ├── shelly-1-mini-gen4.yaml  Mini form factor, with an NTC.
     ├── shelly-1pm-mini-gen4.yaml  Mini form factor, BL0942 meter and NTC.
     ├── shelly-2pm-gen4.yaml     Two relays, two switch inputs, per-channel ADE7953 metering.
-    └── shelly-plug-us-gen4.yaml  Plug: relay, button, BL0942 meter, LED ring, light sensor.
+    ├── shelly-plug-us-gen4.yaml  Plug: relay, button, BL0942 meter, LED ring, light sensor.
+    └── shelly-em-mini-gen4.yaml  Energy meter: BL0942 on a CT clamp, button, status LED, NTC.
 ```
 
 Each model config is a package your adoption stub references. See [Customizing](docs/CUSTOMIZING.md) for what a stub can change.
@@ -157,7 +159,7 @@ Each model config is a package your adoption stub references. See [Customizing](
 
 ## Credits
 
-The Shelly 1PM Gen4 config started from the community [Shelly 1PM Gen 4 page](https://devices.esphome.io/devices/shelly-1pm-gen-4/) on ESPHome Devices. The shape of the `bl0942` block, the 9600 baud rate, and the NTC divider chain with its 10k/3350 starting values all come from there. The 2PM Gen4 pin map started from the [Shelly Plus 2PM Gen 4 page](https://devices.esphome.io/devices/shelly-plus-2pm-gen-4/) there and the [Tasmota template](https://templates.blakadder.com/shelly_2PM_gen4.html) on blakadder, decoded against Tasmota's source, then corrected on hardware. The software-scaling approach for its ADE7953 follows the [Power Strip 4 Gen4 calibration fix](https://github.com/esphome/devices.esphome.io/pull/1811). The 1PM Mini Gen4 has no public source; its starting guess was the 1 Mini Gen4 map in shelly-1-gen4-matter-thread's [GPIO reference](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/GPIO.md), which held for everything but the meter. The 1 Mini Gen4 config uses that same map directly. The Plug US Gen4 has no public source either; every pin was found on the device.
+The Shelly 1PM Gen4 config started from the community [Shelly 1PM Gen 4 page](https://devices.esphome.io/devices/shelly-1pm-gen-4/) on ESPHome Devices. The shape of the `bl0942` block, the 9600 baud rate, and the NTC divider chain with its 10k/3350 starting values all come from there. The 2PM Gen4 pin map started from the [Shelly Plus 2PM Gen 4 page](https://devices.esphome.io/devices/shelly-plus-2pm-gen-4/) there and the [Tasmota template](https://templates.blakadder.com/shelly_2PM_gen4.html) on blakadder, decoded against Tasmota's source, then corrected on hardware. The software-scaling approach for its ADE7953 follows the [Power Strip 4 Gen4 calibration fix](https://github.com/esphome/devices.esphome.io/pull/1811). The 1PM Mini Gen4 has no public source; its starting guess was the 1 Mini Gen4 map in shelly-1-gen4-matter-thread's [GPIO reference](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/GPIO.md), which held for everything but the meter. The 1 Mini Gen4 config uses that same map directly. The Plug US Gen4 has no public source either; every pin was found on the device. The EM Mini Gen4's pins were also found on the device; its LED, button, and meter match the earlier UART-flashed configs in [barrenechea/esphome-config-files](https://github.com/barrenechea/esphome-config-files) and [dext0r/hotaru](https://github.com/dext0r/hotaru).
 
 Most of the device-specific knowledge here comes from [shelly-1-gen4-matter-thread](https://github.com/automatous-io/shelly-1-gen4-matter-thread), the Matter over Thread firmware for Shelly Gen4 devices: the stock partition offsets, the GPIO maps, the behavior of the stock installer, and the reversibility testing that established the full chip backup and restore path. Its [Flashing Guide](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/FLASHING.md) and [Reversibility](https://github.com/automatous-io/shelly-1-gen4-matter-thread/blob/main/docs/REVERSIBILITY.md) pages cover the UART wiring, flash mode, backup procedure, and test evidence in depth, and apply to this project unchanged.
 

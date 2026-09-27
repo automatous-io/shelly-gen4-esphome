@@ -1,0 +1,9 @@
+# Stock Shelly EM Mini Gen4 layout (partition table at 0x10000). Smaller app and fs slots
+# than the rest of the line; fs_1, emdata, zb_storage and shelly past 0x6C0000 are left
+# out so nothing writes them.
+# Name,   Type, SubType, Offset,   Size
+otadata,  data, ota,     0x11000,  0x2000,
+nvs,      data, nvs,     0x14000,  0xc000,
+app_0,    app,  ota_0,   0x20000,  0x2f0000,
+fs_0,     data, spiffs,  0x310000, 0xc0000,
+app_1,    app,  ota_1,   0x3d0000, 0x2f0000,

@@ -21,7 +21,17 @@ from esphome.components import esp32
 DEPENDENCIES = ["esp32"]
 CODEOWNERS = ["@automatous-io"]
 
-CONFIG_SCHEMA = cv.Schema({})
+CONF_LAYOUT = "layout"
+
+# stock tables differ per model; the EM Mini has smaller app and fs slots
+LAYOUTS = {
+    "standard": "shelly-gen4-stock.csv",
+    "em_mini": "shelly-em-mini-gen4-stock.csv",
+}
+
+CONFIG_SCHEMA = cv.Schema(
+    {cv.Optional(CONF_LAYOUT, default="standard"): cv.one_of(*LAYOUTS, lower=True)}
+)
 
 
 async def to_code(config):
@@ -30,5 +40,5 @@ async def to_code(config):
     # repo; the stock table must ship inside this component.
     esp32.add_extra_build_file(
         "partitions.csv",
-        Path(__file__).parent / "shelly-gen4-stock.csv",
+        Path(__file__).parent / LAYOUTS[config[CONF_LAYOUT]],
     )

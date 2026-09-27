@@ -36,6 +36,8 @@ HARDWARE = {
     "shelly-1-mini-gen4": {"app_code": "Mini1G4", "compatible": "Mini1G4*"},
     "shelly-1pm-mini-gen4": {"app_code": "Mini1PMG4", "compatible": "Mini1PMG4*"},
     "shelly-plug-us-gen4": {"app_code": "PlugUSG4", "compatible": "PlugUSG4*"},
+    "shelly-em-mini-gen4": {"app_code": "MiniEMG4", "compatible": "MiniEMG4*", "fs_size": 0xC0000,
+                            "partitions": "shelly-em-mini-gen4-stock.csv"},
 }
 PLATFORM     = "esp32c6"
 MANIFEST_VER = "99.0.0"
@@ -86,7 +88,8 @@ def write_zip(out_dir, tmp, hardware, app_code, compatible, paths, pt_addr, boot
             "otadata": part("otadata.bin", type="otadata", ptn="otadata", encrypt=ENCRYPT),
             "nvs":     {"type": "nvs", "size": NVS_SIZE, "fill": 255, "ptn": "nvs"},
             "app":     part("app.bin", type="app", ptn="app_0", encrypt=ENCRYPT),
-            "fs":      part("fs.img", type="fs", ptn="fs_0", fs_size=FS_SIZE, encrypt=ENCRYPT),
+            "fs":      part("fs.img", type="fs", ptn="fs_0", fs_size=HARDWARE[hardware].get("fs_size", FS_SIZE),
+                            encrypt=ENCRYPT),
         },
         "compatible": compatible,
     }
@@ -146,7 +149,6 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmp:
         fs_img = os.path.join(tmp, "fs.img")
-        open(fs_img, "wb").write(b"\xff" * FS_SIZE)
         if not otadata:
             otadata = os.path.join(tmp, "otadata.bin")
             open(otadata, "wb").write(b"\xff" * 0x2000)
@@ -161,6 +163,8 @@ def main():
 
         for hw in targets:
             codes = HARDWARE[hw]
+            # the EM Mini's stock fs slot is smaller than the rest of the line
+            open(fs_img, "wb").write(b"\xff" * codes.get("fs_size", FS_SIZE))
             app_code = args.app_code or codes["app_code"]
             compatible = args.compatible or codes["compatible"]
             zip_out = write_zip(os.getcwd(), tmp, hw, app_code, compatible,

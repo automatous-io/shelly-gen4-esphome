@@ -14,7 +14,7 @@ What happens after the conversion reboots: joining Wi-Fi, what shows in Home Ass
 
 ## First boot
 
-The conversion ships blank settings. The device opens a hotspot (`<model>-<suffix>`, so `shelly-1-gen4-52ab8c`, `shelly-1pm-gen4-52ab8c`, `shelly-1-mini-gen4-52ab8c`, `shelly-1pm-mini-gen4-52ab8c`, `shelly-2pm-gen4-52ab8c`, or `shelly-plug-us-gen4-52ab8c`, password `automatous`) with a captive portal at 192.168.4.1 to take your Wi-Fi credentials.
+The conversion ships blank settings. The device opens a hotspot (`<model>-<suffix>`, so `shelly-1-gen4-52ab8c`, `shelly-1pm-gen4-52ab8c`, `shelly-1-mini-gen4-52ab8c`, `shelly-1pm-mini-gen4-52ab8c`, `shelly-2pm-gen4-52ab8c`, `shelly-plug-us-gen4-52ab8c`, or `shelly-em-mini-gen4-52ab8c`, password `automatous`) with a captive portal at 192.168.4.1 to take your Wi-Fi credentials.
 
 Once connected, its web page is at `http://<model>-<suffix>.local` and Home Assistant discovers it through the native API.
 
@@ -54,9 +54,11 @@ The Plug US has the 1PM's metering entities and the same linking, mode, and puls
   <img src="images/ha-esphome-shelly-plug-us-gen4-3.png" alt="Shelly Plug US Gen4 in Home Assistant: diagnostic entities, frequency, internal temperature, and voltage" width="329">
 </p>
 
+The EM Mini has the 1PM's metering entities and a `Button` sensor, with no relay or selects.
+
 ## Adoption and the stub
 
-The device also broadcasts a `dashboard_import` URL, and ESPHome Builder offers to adopt it. Adoption creates a minimal stub in your config directory, roughly (a 1PM, 1 Mini, 1PM Mini, 2PM, or Plug US stub is identical with `shelly-1pm-gen4`, `shelly-1-mini-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`, or `shelly-plug-us-gen4` throughout):
+The device also broadcasts a `dashboard_import` URL, and ESPHome Builder offers to adopt it. Adoption creates a minimal stub in your config directory, roughly (a 1PM, 1 Mini, 1PM Mini, 2PM, Plug US, or EM Mini stub is identical with `shelly-1pm-gen4`, `shelly-1-mini-gen4`, `shelly-1pm-mini-gen4`, `shelly-2pm-gen4`, `shelly-plug-us-gen4`, or `shelly-em-mini-gen4` throughout):
 
 ```yaml
 substitutions:

@@ -1,0 +1,145 @@
+#
+# Copyright 2026 AUTOMATOUS.IO
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Shelly EM Mini Gen4 — full model config: button, status LED, BL0942 power metering
+# through the CT clamp, and the onboard NTC.
+#
+
+substitutions:
+  device_name: "shelly-em-mini-gen4"
+  friendly_name: "Shelly EM Mini Gen4"
+  log_level: "INFO" # Logger verbosity (DEBUG, VERBOSE for troubleshooting)
+  ap_password: "automatous" # Fallback hotspot password
+  factory_reset_hold: "5s" # Button hold time before factory reset
+  line_frequency: "60Hz" # Mains frequency; 50Hz outside North America
+  power_update_interval: "10s" # How often the power meter publishes
+  ntc_b_constant: "3350" # NTC beta value, estimated
+  voltage_reference: "14491.65075" # BL0942 voltage scaling, measured on this board
+  current_reference: "251625.18057" # BL0942 current scaling, measured with the stock CT
+
+packages:
+  base: !include shelly-gen4-base.yaml
+
+# stock EM Mini flash has smaller app and fs slots than the rest of the line
+shelly_gen4_partition:
+  layout: em_mini
+
+# stock firmware leaves pad hold on the LED pin, and it survives the web UI
+# conversion. without this the LED stays frozen until the device is power-cycled.
+esphome:
+  on_boot:
+    priority: 1000
+    then:
+      - lambda: |-
+          gpio_hold_dis(GPIO_NUM_5);
+
+# converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
+# false keeps adopted stubs as references, every rebuild pulls updates from this repo.
+dashboard_import:
+  package_import_url: github://automatous-io/shelly-gen4-esphome/configs/shelly-em-mini-gen4.yaml@main
+  import_full_config: false
+
+binary_sensor:
+  # onboard button: reported to Home Assistant, long hold factory resets
+  - platform: gpio
+    name: "Button"
+    pin:
+      number: GPIO22
+      inverted: true
+      mode: INPUT_PULLUP
+    filters:
+      - delayed_on_off: 50ms
+    on_multi_click:
+      - timing:
+          - ON for at least ${factory_reset_hold}
+        then:
+          - button.press: btn_factory_reset
+
+# BL0942 power meter. the logger owns UART0, so this runs on UART1.
+# 9600 baud, not the chip's 4800 default; a mismatch logs "BL0942 setup failed!" at boot.
+uart:
+  id: uart_bl0942
+  tx_pin: GPIO20
+  rx_pin:
+    number: GPIO19
+    mode:
+      input: true
+      pullup: true
+  baud_rate: 9600
+  stop_bits: 1
+
+sensor:
+  # metering. the references are measured on this board with the stock CT. power and
+  # energy derive from these two, so setting power_reference by hand makes them worse.
+  - platform: bl0942
+    uart_id: uart_bl0942
+    line_frequency: ${line_frequency}
+    update_interval: ${power_update_interval}
+    voltage_reference: ${voltage_reference}
+    current_reference: ${current_reference}
+    voltage:
+      name: "Voltage"
+      id: sensor_voltage
+      entity_category: diagnostic
+    current:
+      name: "Current"
+      id: sensor_current
+    power:
+      name: "Power"
+      id: sensor_power
+    frequency:
+      name: "Frequency"
+      id: sensor_frequency
+      accuracy_decimals: 2
+      entity_category: diagnostic
+    energy:
+      name: "Energy"
+      id: sensor_energy
+      device_class: energy
+      state_class: total_increasing
+      accuracy_decimals: 3
+
+  # onboard NTC on a 10k divider. the beta value is an estimate, not measured.
+  # the base package's "Internal Temperature" is the ESP32-C6 die sensor, not this one.
+  - platform: ntc
+    name: "Temperature"
+    id: sensor_temperature
+    sensor: temp_resistance
+    entity_category: diagnostic
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    calibration:
+      b_constant: ${ntc_b_constant}
+      reference_resistance: 10kOhm
+      reference_temperature: 25°C
+
+  - platform: resistance
+    id: temp_resistance
+    sensor: temp_voltage
+    configuration: DOWNSTREAM
+    resistor: 10kOhm
+    internal: true
+
+  - platform: adc
+    id: temp_voltage
+    pin: GPIO4
+    attenuation: 12db
+    internal: true
+
+# Status LED: blinks while Wi-Fi/API are disconnected (setup or reconnecting), off when healthy.
+status_led:
+  pin:
+    number: GPIO5
+    inverted: true
