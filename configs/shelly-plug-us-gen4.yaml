@@ -32,7 +32,7 @@ substitutions:
   line_frequency: "60Hz" # Mains frequency
   power_update_interval: "10s" # How often the power meter publishes
   light_update_interval: "10s" # How often the light sensor publishes
-  window_factor: "2.9" # Illuminance multiplier for the light the front window blocks, measured against a light meter
+  illuminance_scale: "2.9" # Illuminance calibration for this model, measured against a light meter
   dark_threshold: "5" # Illumination is dark below this many lux
   bright_threshold: "100" # Illumination is bright above this many lux
   voltage_reference: "25169.82830" # BL0942 voltage scaling, measured on this board
@@ -295,9 +295,8 @@ sensor:
       state_class: total_increasing
       accuracy_decimals: 3
 
-  # LTR-329 behind the dark front window. lux is computed here rather than by the component:
-  # its formula publishes 0 whenever infrared dominates, which this window causes in dim light.
-  # window_factor corrects for the light the window absorbs.
+  # LTR-329. lux is computed here rather than by the component, whose formula publishes 0
+  # in dim light on this board; illuminance_scale calibrates it for this model.
   - platform: ltr_als_ps
     address: 0x29
     type: ALS
@@ -340,7 +339,7 @@ sensor:
       if (ratio < 0.45f) lux = 1.7743f * ch0 + 1.1059f * ch1;
       else if (ratio < 0.64f) lux = 4.2785f * ch0 - 1.9548f * ch1;
       else lux = 0.5926f * ch0 + 0.1185f * ch1;
-      return std::max(0.0f, lux / gain / (itime / 100.0f) * (float) ${window_factor});
+      return std::max(0.0f, lux / gain / (itime / 100.0f) * (float) ${illuminance_scale});
     on_value:
       - text_sensor.template.publish:
           id: illumination

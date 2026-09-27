@@ -120,7 +120,7 @@ Verified: September 2026
 
 The relay, button, LED ring, BL0942 power meter, and light sensor are all confirmed on real hardware. No public pin map exists for this board, every pin was found on the device.
 
-Stock firmware holds the relay pad here as well, the config releases GPIO4 at boot. The BL0942's TX line needs the pull-up on GPIO19; without it the ESP never receives a reply. The light sensor sits behind a dark front window that blocks most visible light, the config scales its lux by a measured window factor and computes lux itself, since ESPHome's formula reads 0 in dim light behind it.
+Stock firmware holds the relay pad here as well, the config releases GPIO4 at boot. The BL0942's TX line needs the pull-up on GPIO19; without it the ESP never receives a reply. The light sensor sits behind a dark front window, the config calibrates its lux against a light meter and computes lux itself, since ESPHome's formula reads 0 in dim light on this board.
 
 ## Related documentation
 
