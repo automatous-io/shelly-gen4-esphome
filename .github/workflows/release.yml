@@ -66,6 +66,7 @@ jobs:
           - shelly-1-mini-gen4
           - shelly-1pm-mini-gen4
           - shelly-plug-us-gen4
+          - shelly-em-mini-gen4
     env:
       # mirrors the ENV block in .devcontainer/Dockerfile: one cache for the
       # PlatformIO packages and the native ESP-IDF install

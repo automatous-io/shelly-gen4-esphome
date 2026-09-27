@@ -36,6 +36,18 @@ The partition names are part of the compatibility surface, not cosmetic: the sto
 
 The mismatch between the two layouts bites in two independent ways. A default ESPHome bootloader looks for the table at 0x8000 and finds nothing there, so nothing boots. And even a build that knows about 0x10000 must describe the same geography as the stock table, because the conversion process writes parts to addresses the stock firmware looks up in the table it already has.
 
+## The EM Mini layout
+
+The EM Mini Gen4 keeps the table at 0x10000 but sizes its slots differently, and it adds partitions past `app_1`, for energy history, Zigbee, and Shelly's factory data. [`shelly-em-mini-gen4-stock.csv`](../components/shelly_gen4_partition/shelly-em-mini-gen4-stock.csv) mirrors stock up to `app_1` and leaves the rest untouched:
+
+| Partition | Offset | Size |
+|---|---|---|
+| app_0 | 0x20000 | 2.94 MB |
+| fs_0 | 0x310000 | 768 KB |
+| app_1 | 0x3D0000 | 2.94 MB |
+
+The shared table does not fit this model. Its `fs_0` runs past 0x3D0000 into the running `app_1`, and the stock installer refuses it with `New fs_0 overlaps with current app_1`, writing nothing.
+
 ## How conversion writes flash
 
 The stock web UI installer accepts a zip containing a manifest and a set of parts. [`make-esphome-ota-zip.py`](../scripts/make-esphome-ota-zip.py) builds that zip from an ESPHome build. The otadata, nvs, app, and fs parts are written by partition name, and the running stock firmware resolves those names using the partition table it already has.
@@ -60,13 +72,13 @@ Factory firmware ships running from slot 0, and every stock update flips the act
 
 Adopted devices rebuild from this repository on machines that have never seen it, so the layout knowledge has to travel with the config. Three pieces carry it.
 
-The CSV above is the master copy. The `shelly_gen4_partition` external component registers that CSV as the build's `partitions.csv`, which makes ESPHome skip generating its own table; the base config pulls the component from this repository on GitHub. A fresh machine gets the table as part of the build. And `CONFIG_PARTITION_TABLE_OFFSET: "0x10000"` in the base config is compiled into the bootloader and app so the firmware looks for the table where it actually is.
+The CSVs above are the master copies. The `shelly_gen4_partition` external component registers the model's CSV as the build's `partitions.csv` (`layout: standard` by default, `layout: em_mini` in the EM Mini config), which makes ESPHome skip generating its own table; the base config pulls the component from this repository on GitHub. A fresh machine gets the table as part of the build. And `CONFIG_PARTITION_TABLE_OFFSET: "0x10000"` in the base config is compiled into the bootloader and app so the firmware looks for the table where it actually is.
 
 The failure modes of removing them are asymmetric. Without the component, the build fails outright: ESPHome sizes its auto-generated layout for a table at 0x8000, and with the table pushed to 0x10000 everything slides 64KB up and the last partition runs 64KB past the end of the 8MB chip. That is a build error on the bench, never damage to a device. Without the offset pin, the firmware builds and installs but the bootloader cannot find the table at boot. Both pieces are load-bearing, which is why [Customizing](CUSTOMIZING.md#package-merging-and-stable-ids) asks you to leave the base's `esp32:` block, `external_components` entry, and `shelly_gen4_partition:` alone.
 
 ## Updates after conversion
 
-ESPHome OTA sends only an app image. The device writes it into whichever 3MB app slot it is not currently running from, then flips otadata to mark the new slot bootable. The practical consequence of the layout is app slots of 3MB instead of the default layout's 3.75MB, and that 3MB is the ceiling for how large a firmware image can grow.
+ESPHome OTA sends only an app image. The device writes it into whichever app slot it is not currently running from, then flips otadata to mark the new slot bootable. The practical consequence of the layout is app slots of 3MB instead of the default layout's 3.75MB, and that 3MB (2.94MB on the EM Mini) is the ceiling for how large a firmware image can grow.
 
 ## Related documentation
 

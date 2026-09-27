@@ -20,7 +20,7 @@ The shape it would take:
 - A power limit per channel on the metering models, and a temperature limit on every model with an NTC. Substitutions for the build default, plus `number` entities so they are adjustable at runtime without a rebuild.
 - The trip latches. The relay goes off and stays off until it is cleared, so flipping the wall switch does not walk straight back into the fault.
 - A binary sensor for the tripped state and a button to clear it, so automations can see it and Home Assistant can reset it.
-- Per model: the 1PM, 1PM Mini, and 2PM get both halves, the 2PM per channel. The Plug US gets the power half. The 1 Mini has an NTC but no meter, so it gets the temperature half only. The 1 Gen4 has neither an NTC nor a meter, so it gets nothing; its Internal Temperature is the ESP32-C6's sensor, which tracks the chip rather than the relay.
+- Per model: the 1PM, 1PM Mini, and 2PM get both halves, the 2PM per channel. The Plug US gets the power half. The EM Mini has no relay to cut, so it gets nothing. The 1 Mini has an NTC but no meter, so it gets the temperature half only. The 1 Gen4 has neither an NTC nor a meter, so it gets nothing; its Internal Temperature is the ESP32-C6's sensor, which tracks the chip rather than the relay.
 
 **What this is not.** `power_update_interval` defaults to 10s and the meters publish on that cadence, so this is a slow overload and thermal guard measured in seconds, not a circuit breaker. It cannot react to a short, and it replaces neither the breaker in the panel nor correctly rated wiring and a correctly sized load. It is a convenience limit, not a protective device.
 
@@ -34,7 +34,7 @@ What it needs:
 
 - A Thread border router to bridge the mesh to your network.
 - The Thread network's credentials compiled into the build, as the hex TLV dataset your Thread integration hands out.
-- Headroom in the app slot. Shelly's layout gives 3MB per slot rather than the default 3.75MB, so a Thread build has to fit that ceiling. See [The Partition System](PARTITIONS.md).
+- Headroom in the app slot. Shelly's layout gives 3MB per slot (2.94MB on the EM Mini) rather than the default 3.75MB, so a Thread build has to fit that ceiling. See [The Partition System](PARTITIONS.md).
 
 One documented sharp edge: `esphome.ota` does not work while a sleepy end device is polling (`poll_period > 0`). A mains-powered relay has no reason to sleep and would run as a full Thread device, so this should not bite here, but it is the thing to check first if OTA goes quiet.
 

@@ -14,6 +14,7 @@ Every pin on this page was verified on real hardware. The same map is kept in [s
 - [Shelly 1PM Mini Gen4](#shelly-1pm-mini-gen4)
 - [Shelly 2PM Gen4](#shelly-2pm-gen4)
 - [Shelly Plug US Gen4](#shelly-plug-us-gen4)
+- [Shelly EM Mini Gen4](#shelly-em-mini-gen4)
 
 ## Shelly 1 Gen4
 
@@ -125,6 +126,24 @@ Verified: September 2026
 The relay, button, LED ring, BL0942 power meter, and light sensor are all confirmed on real hardware. No public pin map exists for this board, every pin was found on the device.
 
 Stock firmware holds the relay pad here as well, the config releases GPIO4 at boot. The BL0942's TX line needs the pull-up on GPIO19; without it the ESP never receives a reply. The light sensor sits behind a dark front window, the config calibrates its lux against a light meter and computes lux itself, since ESPHome's formula reads 0 in dim light on this board.
+
+## Shelly EM Mini Gen4
+
+Hardware Revision: v0.1.1
+
+Verified: September 2026
+
+| Function | GPIO |
+|---|---|
+| Button (onboard) | GPIO22, active-low |
+| Status LED | GPIO5, active-low |
+| Power meter (BL0942) | TX GPIO20, RX GPIO19 with pull-up, UART1, 9600 baud |
+| NTC | GPIO4 |
+| RTC (PCF8563-compatible) | SDA GPIO10, SCL GPIO11, I2C address 0x51, coin cell backup |
+
+The button, status LED, BL0942 power meter, NTC, and RTC are all confirmed on real hardware, every pin found on the device. The first four match the 1PM Mini Gen4 without the relay and switch input. The meter reads current through the included CT clamp.
+
+Stock firmware holds the LED pad, and the config releases GPIO5 at boot. Other public configs put the NTC on GPIO3, as on the Plus Minis; on this board GPIO4 reads 2 °C above the ESP32-C6 at idle and GPIO3 reads 17 °C above it. The RTC's coin cell sits on a connector and can come loose in shipping; with it disconnected the clock resets at power loss, and with it seated the clock kept time through a power cut. The stock flash layout differs from the rest of the line; see [The Partition System](PARTITIONS.md#the-em-mini-layout).
 
 ## Related documentation
 

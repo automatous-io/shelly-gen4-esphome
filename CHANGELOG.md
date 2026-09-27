@@ -9,6 +9,31 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.3.0
+
+**Shelly EM Mini Gen4 — new, working on hardware.**
+
+- Added [`configs/shelly-em-mini-gen4.yaml`](configs/shelly-em-mini-gen4.yaml): button, status
+  LED, BL0942 power meter on the included CT clamp, the NTC, and the battery-backed RTC. The
+  web UI zip carries the stock app code `MiniEMG4`.
+- Found every pin on the device: button GPIO22, status LED GPIO5, BL0942 TX GPIO20 / RX GPIO19,
+  NTC GPIO4, the 1PM Mini's map without the relay and switch input, plus the RTC on I2C at
+  GPIO10/GPIO11. See the [GPIO Map](docs/GPIO.md#shelly-em-mini-gen4).
+- The meter is calibrated against a reference meter (`voltage_reference` 14491.65075,
+  `current_reference` 251625.18057).
+- The EM Mini's stock flash layout has smaller app and fs slots than the rest of the line, so
+  the shared partition table is rejected by its installer. `shelly_gen4_partition` takes a
+  `layout:` option, `standard` by default and `em_mini` for this model, and the zip carries the
+  matching 768 KB fs part. See [The Partition System](docs/PARTITIONS.md#the-em-mini-layout).
+- The RTC (PCF8563-compatible, 0x51) is read at boot. The clock is valid before Wi-Fi
+  connects, and Home Assistant's time is written back to it on every sync. `RTC Time` shows
+  what the chip holds, or `not set` after it lost power.
+- Stock firmware holds the LED pad, so the config releases GPIO5 at boot.
+- `build.py` builds the checkout's own partition component rather than the copy on `main`.
+- Other models are unchanged apart from the version string.
+
+---
+
 ## 1.2.0
 
 **Shelly Plug US Gen4 — new, working on hardware.**
