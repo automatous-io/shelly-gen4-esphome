@@ -104,12 +104,21 @@ Changing these to match your own unit is [Calibrating the Power Meter](CALIBRATI
 
 Standard ESPHome package merging applies: dictionaries deep-merge with the stub winning, lists append, and `!extend`/`!remove` reach into the package by id. What your stub merges over is exactly your model's config in [`configs/`](../configs) plus the shared [`configs/shelly-gen4-base.yaml`](../configs/shelly-gen4-base.yaml), so read those to see everything there is to change.
 
-Every model uses the same stable ids for the parts it has — `relay_1`, `relay_linking_select`, `relay_mode_select`, `pulse_select`, and `btn_factory_reset`. Models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM, 1PM Mini, Plug US, and EM Mini have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The Plug US adds `led_ring`, `ring_mode_select`, `sensor_illuminance`, and `illumination`. The 2PM has `relay_2`, `relay_2_linking_select`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
+Every model uses the same stable ids for the parts it has — `relay_1`, `relay_linking_select`, `relay_mode_select`, `pulse_select`, `btn_factory_reset`, `ble_tracker`, and `bluetooth_proxy_switch`. Models with an NTC add `sensor_temperature`, and metering models add `sensor_voltage` and `sensor_frequency`. The 1PM, 1PM Mini, Plug US, and EM Mini have `sensor_current`, `sensor_power`, `sensor_energy`, and `uart_bl0942`. The Plug US adds `led_ring`, `ring_mode_select`, `sensor_illuminance`, and `illumination`. The 2PM has `relay_2`, `relay_2_linking_select`, `relay_2_mode_select`, `pulse_2_select`, per-channel `sensor_current_1`/`_2`, `sensor_power_1`/`_2`, `sensor_energy_1`/`_2`, and `ade7953_meter` on the `i2c_ade7953` bus:
 
 ```yaml
 switch:
   - id: !extend relay_1
     icon: mdi:garage
+```
+
+The `Bluetooth Proxy` switch turns the proxy off at runtime. To leave it out of the build, remove both components and the switch together; the switch alone fails to compile without them:
+
+```yaml
+esp32_ble_tracker: !remove
+bluetooth_proxy: !remove
+switch:
+  - id: !remove bluetooth_proxy_switch
 ```
 
 Leave the base's `esp32:` block, `external_components` entry, and `shelly_gen4_partition:` alone; they are the [partition wiring](PARTITIONS.md).
