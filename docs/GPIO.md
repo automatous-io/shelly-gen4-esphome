@@ -107,6 +107,10 @@ This map deserves a note because the public sources disagree with each other and
 
 ## Shelly Plug US Gen4
 
+<p>
+  <img src="images/shelly-plug-us-gen4.jpg" alt="Shelly Plug US Gen4 running ESPHome, its LED ring glowing green in Power mode" width="400">
+</p>
+
 Verified: September 2026
 
 | Function | GPIO |
