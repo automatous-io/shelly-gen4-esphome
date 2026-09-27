@@ -129,6 +129,8 @@ Stock firmware holds the relay pad here as well, the config releases GPIO4 at bo
 
 ## Shelly EM Mini Gen4
 
+Hardware Revision: v0.1.1
+
 Verified: September 2026
 
 | Function | GPIO |
