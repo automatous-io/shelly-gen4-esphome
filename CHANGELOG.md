@@ -9,6 +9,23 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.4.2
+
+**Fixes Momentary pulses being cut short.** Affects the six relay models: the 1, 1PM, 1 Mini,
+1PM Mini, 2PM, and Plug US. The EM Mini is unchanged apart from the version string.
+
+- In Momentary mode, turning the relay back on before its pulse ended let the earlier pulse's
+  timer turn it off early, so the new pulse was cut short. A garage door opener can miss a
+  pulse that short.
+- Every pulse now runs its full length, and turning the relay off mid-pulse cancels the
+  pending turn-off. On the 2PM each channel keeps its own timer.
+- Adopted devices pick this up on their next rebuild.
+- Reported by [@stargazer992](https://github.com/stargazer992) in [#23](../../issues/23).
+- Verified on the 2PM (both channels), 1 Mini, 1PM, and Plug US. On the 1 Mini and 1PM the
+  cut-short pulse was reproduced on 1.4.1 first. The 1 and 1PM Mini use the same relay code.
+
+---
+
 ## 1.4.1
 
 **Fixes the fallback hotspot on 1.4.0.** Affects all seven models; update from 1.4.0.
