@@ -42,6 +42,10 @@ substitutions:
   current_2_multiplier: "3.808" # channel 2 current
   power_1_multiplier: "-3.679" # channel 1 power, sign reversed
   power_2_multiplier: "-3.718" # channel 2 power, sign reversed
+  max_power: "2400" # Overpower limit per channel in W, up to the 2400 W rating
+  max_current: "10" # Overcurrent limit per channel in A, up to the 10 A rating
+  max_voltage: "280" # Overvoltage limit in V, up to 280 V
+  max_temperature: "95" # Overheating limit in °C on the board NTC; Shelly's documented 95 °C
 
 packages:
   base: !include shelly-gen4-base.yaml
@@ -59,7 +63,16 @@ switch:
     id: relay_1
     pin: GPIO5
     restore_mode: ${relay_restore}
+    # turning on clears the channel's faults, unless voltage or temperature is still over its limit
     on_turn_on:
+      - lambda: |-
+          bool high = id(sensor_voltage).state > id(max_voltage_number).state;
+          bool hot = id(sensor_temperature).raw_state > ${max_temperature};
+          id(fault_overpower_1).publish_state(false);
+          id(fault_overcurrent_1).publish_state(false);
+          id(fault_overvoltage).publish_state(high);
+          id(fault_overheating).publish_state(hot);
+          if (high || hot) id(relay_1).turn_off();
       - if:
           condition:
             lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
@@ -74,6 +87,14 @@ switch:
     pin: GPIO3
     restore_mode: ${relay_restore}
     on_turn_on:
+      - lambda: |-
+          bool high = id(sensor_voltage).state > id(max_voltage_number).state;
+          bool hot = id(sensor_temperature).raw_state > ${max_temperature};
+          id(fault_overpower_2).publish_state(false);
+          id(fault_overcurrent_2).publish_state(false);
+          id(fault_overvoltage).publish_state(high);
+          id(fault_overheating).publish_state(hot);
+          if (high || hot) id(relay_2).turn_off();
       - if:
           condition:
             lambda: 'return id(relay_2_mode_select).current_option() == "Momentary";'
@@ -183,6 +204,46 @@ select:
     initial_option: ${relay_pulse}
     restore_value: true
 
+# protection limits, settable up to the device's rating like stock's.
+# Max Power and Max Current apply to each channel.
+number:
+  - platform: template
+    name: "Max Power"
+    id: max_power_number
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${max_power}
+    min_value: 0
+    max_value: 2400
+    step: 1
+    unit_of_measurement: "W"
+    mode: box
+  - platform: template
+    name: "Max Current"
+    id: max_current_number
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${max_current}
+    min_value: 0
+    max_value: 10
+    step: 0.1
+    unit_of_measurement: "A"
+    mode: box
+  - platform: template
+    name: "Max Voltage"
+    id: max_voltage_number
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${max_voltage}
+    min_value: 0
+    max_value: 280
+    step: 1
+    unit_of_measurement: "V"
+    mode: box
+
 binary_sensor:
   # S1 terminal; toggles relay 1 when the input turns on. Unlinked reports the
   # input to Home Assistant only, leaving the relay alone. Each input has its own
@@ -231,6 +292,34 @@ binary_sensor:
         then:
           - button.press: btn_factory_reset
 
+  # stock's protections. each latches on when it turns its relay off and clears when the
+  # relay is turned back on. a trip takes two readings in a row over the limit while on.
+  # power and current are per channel; overvoltage and overheating turn both relays off.
+  - platform: template
+    name: "Overpower 1"
+    id: fault_overpower_1
+    device_class: problem
+  - platform: template
+    name: "Overpower 2"
+    id: fault_overpower_2
+    device_class: problem
+  - platform: template
+    name: "Overcurrent 1"
+    id: fault_overcurrent_1
+    device_class: problem
+  - platform: template
+    name: "Overcurrent 2"
+    id: fault_overcurrent_2
+    device_class: problem
+  - platform: template
+    name: "Overvoltage"
+    id: fault_overvoltage
+    device_class: problem
+  - platform: template
+    name: "Overheating"
+    id: fault_overheating
+    device_class: problem
+
 # ADE7953 power meter on I2C. One voltage channel, two current channels (A = relay 1,
 # B = relay 2). The Tasmota template drives a reset line on GPIO0; the meter comes up fine
 # with that pin left alone, so nothing drives it.
@@ -258,6 +347,16 @@ sensor:
       entity_category: diagnostic
       filters:
         - multiply: ${voltage_multiplier}
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = (id(relay_1).state || id(relay_2).state) && x > id(max_voltage_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_1).turn_off();
+              id(relay_2).turn_off();
+              id(fault_overvoltage).publish_state(true);
+            }
     frequency:
       name: "Frequency"
       id: sensor_frequency
@@ -269,22 +368,58 @@ sensor:
       accuracy_decimals: 3
       filters:
         - multiply: ${current_1_multiplier}
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = id(relay_1).state && x > id(max_current_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_1).turn_off();
+              id(fault_overcurrent_1).publish_state(true);
+            }
     current_b:
       name: "Current 2"
       id: sensor_current_2
       accuracy_decimals: 3
       filters:
         - multiply: ${current_2_multiplier}
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = id(relay_2).state && x > id(max_current_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_2).turn_off();
+              id(fault_overcurrent_2).publish_state(true);
+            }
     active_power_a:
       name: "Power 1"
       id: sensor_power_1
       filters:
         - multiply: ${power_1_multiplier}
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = id(relay_1).state && x > id(max_power_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_1).turn_off();
+              id(fault_overpower_1).publish_state(true);
+            }
     active_power_b:
       name: "Power 2"
       id: sensor_power_2
       filters:
         - multiply: ${power_2_multiplier}
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = id(relay_2).state && x > id(max_power_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_2).turn_off();
+              id(fault_overpower_2).publish_state(true);
+            }
 
   # energy, integrated from active power. a relay output cannot feed power back, so the
   # integrator sees power clamped at zero; otherwise idle noise or a miscalibrated sign
@@ -347,6 +482,19 @@ sensor:
       b_constant: ${ntc_b_constant}
       reference_resistance: 10kOhm
       reference_temperature: 25°C
+    # Overheating checks every 10 s reading; Home Assistant still gets one a minute
+    filters:
+      - throttle: 60s
+    on_raw_value:
+      - lambda: |-
+          static uint8_t over = 0;
+          over = (id(relay_1).state || id(relay_2).state) && x > ${max_temperature} ? over + 1 : 0;
+          if (over >= 2) {
+            over = 0;
+            id(relay_1).turn_off();
+            id(relay_2).turn_off();
+            id(fault_overheating).publish_state(true);
+          }
 
   - platform: resistance
     id: temp_resistance
@@ -357,6 +505,7 @@ sensor:
 
   - platform: adc
     id: temp_voltage
+    update_interval: 10s
     pin: GPIO4
     attenuation: 12db
     internal: true
