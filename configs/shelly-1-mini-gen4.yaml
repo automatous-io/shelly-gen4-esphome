@@ -29,6 +29,7 @@ substitutions:
   ap_password: "automatous" # Fallback hotspot password
   factory_reset_hold: "5s" # Button hold time before factory reset
   ntc_b_constant: "3350" # NTC beta value, estimated
+  max_temperature: "95" # Overheating limit in °C on the board NTC; Shelly's documented 95 °C
 
 packages:
   base: !include shelly-gen4-base.yaml
@@ -56,7 +57,12 @@ switch:
     id: relay_1
     pin: GPIO10
     restore_mode: ${relay_restore}
+    # turning on clears Overheating, unless the temperature is still over its limit
     on_turn_on:
+      - lambda: |-
+          bool hot = id(sensor_temperature).raw_state > ${max_temperature};
+          id(fault_overheating).publish_state(hot);
+          if (hot) id(relay_1).turn_off();
       - if:
           condition:
             lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
@@ -152,6 +158,13 @@ binary_sensor:
         then:
           - button.press: btn_factory_reset
 
+  # stock's overheating protection. it latches on when it turns the relay off and clears
+  # when the relay is turned back on. a trip takes two readings in a row over the limit.
+  - platform: template
+    name: "Overheating"
+    id: fault_overheating
+    device_class: problem
+
 sensor:
   # onboard NTC on a 10k divider. the beta value is an estimate, not measured.
   # the base package's "Internal Temperature" is the ESP32-C6 die sensor, not this one.
@@ -166,6 +179,18 @@ sensor:
       b_constant: ${ntc_b_constant}
       reference_resistance: 10kOhm
       reference_temperature: 25°C
+    # Overheating checks every 10 s reading; Home Assistant still gets one a minute
+    filters:
+      - throttle: 60s
+    on_raw_value:
+      - lambda: |-
+          static uint8_t over = 0;
+          over = id(relay_1).state && x > ${max_temperature} ? over + 1 : 0;
+          if (over >= 2) {
+            over = 0;
+            id(relay_1).turn_off();
+            id(fault_overheating).publish_state(true);
+          }
 
   - platform: resistance
     id: temp_resistance
@@ -176,6 +201,7 @@ sensor:
 
   - platform: adc
     id: temp_voltage
+    update_interval: 10s
     pin: GPIO4
     attenuation: 12db
     internal: true

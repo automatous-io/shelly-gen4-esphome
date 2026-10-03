@@ -27,6 +27,7 @@ substitutions:
   log_level: "INFO" # Logger verbosity (DEBUG, VERBOSE for troubleshooting)
   ap_password: "automatous" # Fallback hotspot password
   factory_reset_hold: "5s" # Button hold time before factory reset
+  max_temperature: "95" # Overheating limit in °C on the chip temperature; Shelly's documented 95 °C
 
 packages:
   base: !include shelly-gen4-base.yaml
@@ -44,7 +45,12 @@ switch:
     id: relay_1
     pin: GPIO5
     restore_mode: ${relay_restore}
+    # turning on clears Overheating, unless the temperature is still over its limit
     on_turn_on:
+      - lambda: |-
+          bool hot = id(sensor_internal_temperature).raw_state > ${max_temperature};
+          id(fault_overheating).publish_state(hot);
+          if (hot) id(relay_1).turn_off();
       - if:
           condition:
             lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
@@ -139,6 +145,30 @@ binary_sensor:
           - ON for at least ${factory_reset_hold}
         then:
           - button.press: btn_factory_reset
+
+  # stock's overheating protection. it latches on when it turns the relay off and clears
+  # when the relay is turned back on. a trip takes two readings in a row over the limit.
+  - platform: template
+    name: "Overheating"
+    id: fault_overheating
+    device_class: problem
+
+# no NTC on this board, so Overheating reads the ESP32-C6's own temperature.
+# it checks every 10 s reading; Home Assistant still gets one a minute.
+sensor:
+  - id: !extend sensor_internal_temperature
+    update_interval: 10s
+    filters:
+      - throttle: 60s
+    on_raw_value:
+      - lambda: |-
+          static uint8_t over = 0;
+          over = id(relay_1).state && x > ${max_temperature} ? over + 1 : 0;
+          if (over >= 2) {
+            over = 0;
+            id(relay_1).turn_off();
+            id(fault_overheating).publish_state(true);
+          }
 
 # Status LED: blinks while Wi-Fi/API are disconnected (setup or reconnecting), off when healthy.
 status_led:

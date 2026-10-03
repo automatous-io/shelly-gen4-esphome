@@ -9,6 +9,32 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.5.0
+
+**Overpower, overcurrent, overvoltage, and overheating protection.** Affects the six relay
+models: the 1, 1PM, 1 Mini, 1PM Mini, 2PM, and Plug US. The EM Mini is unchanged apart from
+the version string.
+
+- The relay turns off when a reading goes over its limit, and a problem binary sensor shows
+  which: `Overpower`, `Overcurrent`, `Overvoltage`, or `Overheating`. The fault stays on until
+  the relay is turned back on.
+- New `Max Power`, `Max Current`, and `Max Voltage` number entities on the 1PM, 1PM Mini, 2PM,
+  and Plug US. Each defaults to the device's rating, which is also its ceiling; set power
+  and current to the load on the circuit. On the 2PM, power and current are per channel.
+- Overheating trips at 95 °C, Shelly's documented limit, on every relay model. It reads the
+  NTC where there is one and the ESP32-C6 die temperature on the 1 and Plug US.
+- Limits per model and the substitutions are in
+  [Customizing](docs/CUSTOMIZING.md#protections). The base's Internal Temperature sensor now
+  has the id `sensor_internal_temperature`.
+- Adopted devices pick this up on their next rebuild.
+- Requested by [@stargazer992](https://github.com/stargazer992) in [#23](../../issues/23).
+- Verified on all six. Overheating trips and blocks turn-on on every model. On the Plug US,
+  Overpower, Overcurrent, and Overvoltage tripped on a 140 W load test. Overvoltage also tripped on
+  the 1PM, 1PM Mini, and 2PM, and the 2PM's channels tripped independently. The Plug's stock
+  defaults, read from two units, are its 1800 W / 15 A / 150 V.
+
+---
+
 ## 1.4.2
 
 **Fixes Momentary pulses being cut short.** Affects the six relay models: the 1, 1PM, 1 Mini,

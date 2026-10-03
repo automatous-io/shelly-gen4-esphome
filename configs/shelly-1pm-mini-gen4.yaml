@@ -33,6 +33,10 @@ substitutions:
   ntc_b_constant: "3350" # NTC beta value, estimated
   voltage_reference: "14553.25051" # BL0942 voltage scaling, measured on this board
   current_reference: "255278.38517" # BL0942 current scaling, measured on this board
+  max_power: "1920" # Overpower limit in W, up to 1920 W (the 8 A rating at 240 V)
+  max_current: "8" # Overcurrent limit in A, up to the 8 A rating
+  max_voltage: "280" # Overvoltage limit in V, up to 280 V
+  max_temperature: "95" # Overheating limit in °C on the board NTC; Shelly's documented 95 °C
 
 packages:
   base: !include shelly-gen4-base.yaml
@@ -60,7 +64,16 @@ switch:
     id: relay_1
     pin: GPIO10
     restore_mode: ${relay_restore}
+    # turning on clears the faults, unless voltage or temperature is still over its limit
     on_turn_on:
+      - lambda: |-
+          bool high = id(sensor_voltage).state > id(max_voltage_number).state;
+          bool hot = id(sensor_temperature).raw_state > ${max_temperature};
+          id(fault_overpower).publish_state(false);
+          id(fault_overcurrent).publish_state(false);
+          id(fault_overvoltage).publish_state(high);
+          id(fault_overheating).publish_state(hot);
+          if (high || hot) id(relay_1).turn_off();
       - if:
           condition:
             lambda: 'return id(relay_mode_select).current_option() == "Momentary";'
@@ -123,6 +136,45 @@ select:
     initial_option: ${relay_pulse}
     restore_value: true
 
+# protection limits, settable up to the device's rating like stock's
+number:
+  - platform: template
+    name: "Max Power"
+    id: max_power_number
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${max_power}
+    min_value: 0
+    max_value: 1920
+    step: 1
+    unit_of_measurement: "W"
+    mode: box
+  - platform: template
+    name: "Max Current"
+    id: max_current_number
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${max_current}
+    min_value: 0
+    max_value: 8
+    step: 0.1
+    unit_of_measurement: "A"
+    mode: box
+  - platform: template
+    name: "Max Voltage"
+    id: max_voltage_number
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: ${max_voltage}
+    min_value: 0
+    max_value: 280
+    step: 1
+    unit_of_measurement: "V"
+    mode: box
+
 binary_sensor:
   # SW terminal; toggles the relay when the input turns on. Unlinked reports the
   # input to Home Assistant only, leaving the relay alone.
@@ -156,6 +208,25 @@ binary_sensor:
         then:
           - button.press: btn_factory_reset
 
+  # stock's protections. each latches on when it turns the relay off and clears when the
+  # relay is turned back on. a trip takes two readings in a row over the limit while on.
+  - platform: template
+    name: "Overpower"
+    id: fault_overpower
+    device_class: problem
+  - platform: template
+    name: "Overcurrent"
+    id: fault_overcurrent
+    device_class: problem
+  - platform: template
+    name: "Overvoltage"
+    id: fault_overvoltage
+    device_class: problem
+  - platform: template
+    name: "Overheating"
+    id: fault_overheating
+    device_class: problem
+
 # BL0942 power meter. the logger owns UART0, so this runs on UART1.
 # 9600 baud, not the chip's 4800 default; a mismatch logs "BL0942 setup failed!" at boot.
 uart:
@@ -183,12 +254,39 @@ sensor:
       name: "Voltage"
       id: sensor_voltage
       entity_category: diagnostic
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = id(relay_1).state && x > id(max_voltage_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_1).turn_off();
+              id(fault_overvoltage).publish_state(true);
+            }
     current:
       name: "Current"
       id: sensor_current
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = id(relay_1).state && x > id(max_current_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_1).turn_off();
+              id(fault_overcurrent).publish_state(true);
+            }
     power:
       name: "Power"
       id: sensor_power
+      on_value:
+        - lambda: |-
+            static uint8_t over = 0;
+            over = id(relay_1).state && x > id(max_power_number).state ? over + 1 : 0;
+            if (over >= 2) {
+              over = 0;
+              id(relay_1).turn_off();
+              id(fault_overpower).publish_state(true);
+            }
     frequency:
       name: "Frequency"
       id: sensor_frequency
@@ -214,6 +312,18 @@ sensor:
       b_constant: ${ntc_b_constant}
       reference_resistance: 10kOhm
       reference_temperature: 25°C
+    # Overheating checks every 10 s reading; Home Assistant still gets one a minute
+    filters:
+      - throttle: 60s
+    on_raw_value:
+      - lambda: |-
+          static uint8_t over = 0;
+          over = id(relay_1).state && x > ${max_temperature} ? over + 1 : 0;
+          if (over >= 2) {
+            over = 0;
+            id(relay_1).turn_off();
+            id(fault_overheating).publish_state(true);
+          }
 
   - platform: resistance
     id: temp_resistance
@@ -224,6 +334,7 @@ sensor:
 
   - platform: adc
     id: temp_voltage
+    update_interval: 10s
     pin: GPIO4
     attenuation: 12db
     internal: true
