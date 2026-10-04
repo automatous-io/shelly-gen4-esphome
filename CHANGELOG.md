@@ -9,6 +9,30 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.6.0
+
+**Optional Safety Lockout package.** Affects the 1PM, 1PM Mini, and Plug US; every other
+model is unchanged apart from the version string.
+
+- New `configs/safety-lockout.yaml`, an opt-in package adding a persistent lockout on top
+  of the 1.5.0 protections. The base faults clear the moment the relay is turned back on,
+  from any source, and never re-check current or power; this closes that gap with a latch
+  that survives reboot, blocks the relay from every source while engaged, re-checks
+  current and power as well as voltage and temperature, and requires an explicit
+  `Safety Reset` that itself refuses while still unsafe.
+- New entities when the package is added: `Safety Lockout` (problem, diagnostic),
+  `Safety Reason` (diagnostic), `Safety Reset` (button).
+- Not yet supported: the 2PM (two independent channels), the EM Mini (no relay), and the
+  1 / 1 Mini (no power meter to fault on). See [Safety Lockout](docs/SAFETY-LOCKOUT.md#supported-models).
+- Verified on a physical Shelly Plug US Gen4: a forced-threshold trip engaged the lockout,
+  blocked relay-on from the API while unsafe, refused a Safety Reset while still unsafe,
+  accepted it once the reading was back under the limit, and left the relay off after the
+  reset as designed.
+- See [Safety Lockout](docs/SAFETY-LOCKOUT.md) for usage, the per-model substitution
+  override, and scope.
+
+---
+
 ## 1.5.0
 
 **Overpower, overcurrent, overvoltage, and overheating protection.** Affects the six relay

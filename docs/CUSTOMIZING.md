@@ -11,6 +11,7 @@ Your [adoption stub](ADOPTION.md#adoption-and-the-stub) is where customization l
 - [Models with an NTC](#models-with-an-ntc)
 - [Metering models](#metering-models)
 - [Protections](#protections)
+- [Safety Lockout](#safety-lockout)
 - [Plug US](#plug-us)
 - [EM Mini](#em-mini)
 - [Package merging and stable ids](#package-merging-and-stable-ids)
@@ -113,6 +114,14 @@ This is an overload and thermal guard measured in seconds, not a circuit breaker
 | `max_current` | the table above | initial Max Current in A |
 | `max_voltage` | the table above | initial Max Voltage in V |
 | `max_temperature` | `95` | Overheating limit in °C; not a Home Assistant setting |
+
+## Safety Lockout
+
+An optional package adding a persistent, independent lockout on top of the
+protections above — the base faults clear the moment the relay is turned back
+on and never re-check current or power. See [Safety Lockout](SAFETY-LOCKOUT.md)
+for what it adds, which models it supports (`shelly-1pm-gen4`,
+`shelly-1pm-mini-gen4`, `shelly-plug-us-gen4`), and how to add it to your stub.
 
 ## Plug US
 

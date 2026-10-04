@@ -1,0 +1,196 @@
+#
+# Copyright 2026 basift
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Optional Safety Lockout package — an independent latch on top of a relay
+# model's own Overpower/Overcurrent/Overvoltage/Overheating faults (see
+# CUSTOMIZING.md#protections).
+#
+# Those faults are necessary but not sufficient on their own: each one clears
+# the instant the relay is turned back on, from ANY source (Home Assistant,
+# the native API, or the physical button), and that shared turn-on handler
+# only re-checks voltage and temperature — not current or power. A script, a
+# flaky automation, or a stuck button can retrigger the exact condition that
+# just tripped the relay.
+#
+# This package adds a second, independent gate in front of relay_1's own
+# on_turn_on:
+#   - a persistent lockout that survives reboot (globals use restore_value)
+#   - blocked from every source, because it hooks the one handler all three go through
+#   - re-checks current and power as well as voltage and temperature
+#   - requires an explicit "Safety Reset" action, which itself refuses to
+#     clear the lockout while the measured condition is still unsafe
+#
+# Scope: single-relay metering models only — shelly-1pm-gen4,
+# shelly-1pm-mini-gen4, and shelly-plug-us-gen4, which all share the same
+# relay_1 / sensor_voltage / sensor_current / sensor_power / max_*_number /
+# fault_* ids. The 2PM's two independent channels, and the EM Mini and 1 / 1
+# Mini's lack of a full overcurrent/overpower/overvoltage fault set, are out
+# of scope. See docs/SAFETY-LOCKOUT.md.
+#
+# Usage — add to your adoption stub AFTER the model package, so !extend has
+# something to extend:
+#
+#   packages:
+#     model: github://automatous-io/shelly-gen4-esphome/configs/shelly-plug-us-gen4.yaml@v1.6.0
+#     safety_lockout: github://automatous-io/shelly-gen4-esphome/configs/safety-lockout.yaml@v1.6.0
+#
+# The Plug US has no onboard NTC and reads the ESP32-C6 die instead; override
+# BOTH substitutions below together in your stub for that model. Full detail,
+# including the override block and a worked example, is in
+# docs/SAFETY-LOCKOUT.md.
+#
+substitutions:
+  # The 1PM and 1PM Mini read an onboard NTC as `sensor_temperature`.
+  # Plug US override:
+  #   safety_temperature_sensor_id: sensor_internal_temperature
+  #   safety_temperature_expr: "id(sensor_internal_temperature).raw_state"
+  safety_temperature_sensor_id: sensor_temperature
+  safety_temperature_expr: "id(sensor_temperature).state"
+  # Must match the model's own max_temperature substitution (95 on every
+  # model this package currently supports).
+  safety_max_temperature: "95"
+  # Margin a Safety Reset requires below the limit before it accepts, so a
+  # reset right at the edge does not immediately re-trip.
+  safety_overheat_margin_c: "10.0"
+  safety_margin_fraction: "0.9"
+
+globals:
+  - id: safety_locked
+    type: bool
+    restore_value: true
+    initial_value: "false"
+  - id: safety_reason_code
+    type: int
+    restore_value: true
+    initial_value: "0"
+    # 0 = none, 1 = over-temperature, 2 = overcurrent, 3 = over-power, 4 = overvoltage
+
+script:
+  - id: safety_trip
+    mode: single
+    parameters:
+      reason: int
+    then:
+      - lambda: |-
+          id(safety_reason_code) = reason;
+          id(safety_locked) = true;
+      - switch.turn_off: relay_1
+      - logger.log:
+          format: "Safety Lockout engaged, reason code %d"
+          args: ["id(safety_reason_code)"]
+          level: WARN
+
+# Reuses the model's own fault detection as the trigger for this latch — it
+# already does the sensor wiring and the two-reading debounce.
+binary_sensor:
+  - id: !extend fault_overheating
+    on_press:
+      - script.execute:
+          id: safety_trip
+          reason: 1
+  - id: !extend fault_overvoltage
+    on_press:
+      - script.execute:
+          id: safety_trip
+          reason: 4
+  - id: !extend fault_overpower
+    on_press:
+      - script.execute:
+          id: safety_trip
+          reason: 3
+  - id: !extend fault_overcurrent
+    on_press:
+      - script.execute:
+          id: safety_trip
+          reason: 2
+
+  - platform: template
+    name: "Safety Lockout"
+    id: safety_lockout
+    device_class: problem
+    entity_category: diagnostic
+    lambda: "return id(safety_locked);"
+
+text_sensor:
+  - platform: template
+    name: "Safety Reason"
+    id: safety_reason_text
+    icon: mdi:alert-circle-outline
+    entity_category: diagnostic
+    lambda: |-
+      switch (id(safety_reason_code)) {
+        case 1: return {"Over-temperature"};
+        case 2: return {"Overcurrent"};
+        case 3: return {"Over-power"};
+        case 4: return {"Overvoltage"};
+        default: return {"None"};
+      }
+    update_interval: 1s
+
+switch:
+  # Appends to the model's own on_turn_on (which already checks voltage and
+  # temperature). Adds the persistent lockout as an absolute gate, plus the
+  # current/power re-checks the model's own handler omits — closing the exact
+  # bypass path a button press or a Home Assistant switch.turn_on would
+  # otherwise use against an overcurrent/overpower trip.
+  - id: !extend relay_1
+    on_turn_on:
+      - lambda: |-
+          if (id(safety_locked)) {
+            id(relay_1).turn_off();
+            return;
+          }
+          bool overcurrent = id(sensor_current).state > id(max_current_number).state;
+          bool overpower = id(sensor_power).state > id(max_power_number).state;
+          if (overcurrent) {
+            id(safety_reason_code) = 2;
+            id(safety_locked) = true;
+            id(fault_overcurrent).publish_state(true);
+            id(relay_1).turn_off();
+          } else if (overpower) {
+            id(safety_reason_code) = 3;
+            id(safety_locked) = true;
+            id(fault_overpower).publish_state(true);
+            id(relay_1).turn_off();
+          }
+
+button:
+  - platform: template
+    name: "Safety Reset"
+    id: btn_safety_reset
+    icon: mdi:shield-refresh-outline
+    entity_category: config
+    on_press:
+      - lambda: |-
+          float t = ${safety_temperature_expr};
+          float v = id(sensor_voltage).state;
+          float c = id(sensor_current).state;
+          float p = id(sensor_power).state;
+          bool temp_ok = std::isnan(t) || t < (${safety_max_temperature} - ${safety_overheat_margin_c});
+          bool volt_ok = std::isnan(v) || v <= id(max_voltage_number).state;
+          bool curr_ok = std::isnan(c) || c < (id(max_current_number).state * ${safety_margin_fraction});
+          bool pow_ok  = std::isnan(p) || p < (id(max_power_number).state * ${safety_margin_fraction});
+          if (temp_ok && volt_ok && curr_ok && pow_ok) {
+            id(safety_locked) = false;
+            id(safety_reason_code) = 0;
+            id(fault_overheating).publish_state(false);
+            id(fault_overvoltage).publish_state(false);
+            id(fault_overcurrent).publish_state(false);
+            id(fault_overpower).publish_state(false);
+            ESP_LOGW("safety", "Safety Reset accepted - lockout cleared; relay stays OFF until explicitly turned on");
+          } else {
+            ESP_LOGW("safety", "Safety Reset REFUSED - still unsafe (temp_ok=%d volt_ok=%d curr_ok=%d pow_ok=%d)",
+                     temp_ok, volt_ok, curr_ok, pow_ok);
+          }
