@@ -153,6 +153,18 @@ binary_sensor:
     id: fault_overheating
     device_class: problem
 
+# The fault flag above is a template binary_sensor with no lambda, so nothing
+# publishes it until the first fault or a relay turn-on: with no first publish
+# it has no state at all and Home Assistant shows "unknown" for it. Seed it
+# here instead, and only if it has never published, so a fault already
+# reported during setup is not cleared.
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - lambda: |-
+            if (!id(fault_overheating).has_state()) id(fault_overheating).publish_state(false);
+
 # no NTC on this board, so Overheating reads the ESP32-C6's own temperature.
 # it checks every 10 s reading; Home Assistant still gets one a minute.
 sensor:

@@ -46,6 +46,11 @@ jobs. This package is the second one.
 - A `Safety Reset` button that only clears the lockout if voltage, current,
   power, and temperature are all currently within a margin below their
   limits; otherwise it logs the refusal and leaves the lockout engaged.
+- A boot restore of that reason's own fault flag. The model configs seed every
+  fault flag `false` at boot, so on their own a reboot would leave `Safety
+  Lockout` engaged and `Safety Reason` naming a fault while the matching
+  `Over*` flag read `false`. The flag for the persisted reason is published
+  back at boot, after the seed, so the three agree.
 
 ## Supported models
 
@@ -71,8 +76,8 @@ the model package, so its `!extend` entries have something to extend:
 
 ```yaml
 packages:
-  model: github://automatous-io/shelly-gen4-esphome/configs/shelly-plug-us-gen4.yaml@v1.6.0
-  safety_lockout: github://automatous-io/shelly-gen4-esphome/configs/safety-lockout.yaml@v1.6.0
+  model: github://automatous-io/shelly-gen4-esphome/configs/shelly-plug-us-gen4.yaml@v1.6.1
+  safety_lockout: github://automatous-io/shelly-gen4-esphome/configs/safety-lockout.yaml@v1.6.1
 ```
 
 The Plug US has no onboard NTC and reads the ESP32-C6 die temperature instead

@@ -104,7 +104,7 @@ Models with an NTC read it for Overheating; the 1 and Plug US read the die tempe
 - A trip takes two readings in a row over the limit while the relay is on. Readings come every 10 s, so a trip occurs 10 to 20 s in. Raising `power_update_interval` slows Overpower, Overcurrent, and Overvoltage trips by the same amount.
 - A fault stays on until the relay is turned back on. Turning it on while voltage or temperature is still over its limit turns it straight back off.
 - On the 2PM, Overpower and Overcurrent are per channel. Overvoltage and Overheating turn both relays off.
-- A restart clears the fault sensors. The relay stays off.
+- A restart clears the fault sensors: each flag publishes `false` at boot, so they read `OK` from the first boot rather than `unknown` until the first trip. The relay stays off. The [Safety Lockout](SAFETY-LOCKOUT.md) package puts the flag for a latched lockout back instead, so an engaged lockout still reads `Problem` after power returns.
 
 This is an overload and thermal guard measured in seconds, not a circuit breaker. It cannot react to a short, and it replaces neither the breaker in the panel nor correctly rated wiring.
 

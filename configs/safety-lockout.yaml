@@ -43,8 +43,8 @@
 # something to extend:
 #
 #   packages:
-#     model: github://automatous-io/shelly-gen4-esphome/configs/shelly-plug-us-gen4.yaml@v1.6.0
-#     safety_lockout: github://automatous-io/shelly-gen4-esphome/configs/safety-lockout.yaml@v1.6.0
+#     model: github://automatous-io/shelly-gen4-esphome/configs/shelly-plug-us-gen4.yaml@v1.6.1
+#     safety_lockout: github://automatous-io/shelly-gen4-esphome/configs/safety-lockout.yaml@v1.6.1
 #
 # The Plug US has no onboard NTC and reads the ESP32-C6 die instead; override
 # BOTH substitutions below together in your stub for that model. Full detail,
@@ -122,6 +122,25 @@ binary_sensor:
     device_class: problem
     entity_category: diagnostic
     lambda: "return id(safety_locked);"
+
+# The model config seeds every fault flag false at boot. If the lockout was
+# still latched when power was lost, that would leave Safety Lockout engaged
+# and Safety Reason naming a fault while the matching Over* flag read false.
+# Put the flag for the persisted reason back so the three agree after a reboot.
+# -300 runs after the model's -100 seed.
+esphome:
+  on_boot:
+    - priority: -300
+      then:
+        - lambda: |-
+            if (id(safety_locked)) {
+              switch (id(safety_reason_code)) {
+                case 1: id(fault_overheating).publish_state(true); break;
+                case 2: id(fault_overcurrent).publish_state(true); break;
+                case 3: id(fault_overpower).publish_state(true); break;
+                case 4: id(fault_overvoltage).publish_state(true); break;
+              }
+            }
 
 text_sensor:
   - platform: template

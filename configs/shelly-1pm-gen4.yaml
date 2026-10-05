@@ -217,6 +217,21 @@ binary_sensor:
     id: fault_overheating
     device_class: problem
 
+# The fault flags above are template binary_sensors with no lambda, so nothing
+# publishes them until the first fault, a relay turn-on, or a Safety Reset:
+# with no first publish they have no state at all and Home Assistant shows
+# "unknown" for them. Seed them here instead, and only a flag that has never
+# published, so a fault already reported during setup is not cleared.
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - lambda: |-
+            if (!id(fault_overpower).has_state()) id(fault_overpower).publish_state(false);
+            if (!id(fault_overcurrent).has_state()) id(fault_overcurrent).publish_state(false);
+            if (!id(fault_overvoltage).has_state()) id(fault_overvoltage).publish_state(false);
+            if (!id(fault_overheating).has_state()) id(fault_overheating).publish_state(false);
+
 # BL0942 power meter. the logger owns UART0, so this runs on UART1.
 # 9600 baud, not the chip's 4800 default; a mismatch logs "BL0942 setup failed!" at boot.
 uart:
