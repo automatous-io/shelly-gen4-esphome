@@ -9,6 +9,28 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.6.1
+
+**Fixes the fault binary sensors showing `unknown`.** Affects the six relay models: the 1,
+1PM, 1 Mini, 1PM Mini, 2PM, and Plug US. The EM Mini has no fault sensors and is unchanged
+apart from the version string.
+
+- `Overpower`, `Overcurrent`, `Overvoltage`, and `Overheating` are template binary sensors
+  with no `lambda`, so nothing published a state for them until the first fault, a relay
+  turn-on, or a `Safety Reset`. A device that had hit none of those yet gave Home Assistant
+  nothing to report and every one of them read `unknown`. Each flag now publishes `false` at
+  boot, so they read `OK` from the first boot onward. Detection is unchanged: a fault still
+  needs two readings over the limit while the relay is on, and still clears only on a
+  relay turn-on or a Safety Reset.
+- The seed skips a flag that has already published, so a fault reported while the relay was
+  restored on during setup is not cleared by it.
+- With the Safety Lockout package, a lockout that survived a reboot puts its own flag back:
+  `Safety Lockout`, `Safety Reason`, and the matching `Over*` flag agree after power
+  returns instead of the flag reading `false` next to an engaged lockout.
+- Adopted devices pick this up on their next rebuild.
+
+---
+
 ## 1.6.0
 
 **Optional Safety Lockout package.** Affects the 1PM, 1PM Mini, and Plug US; every other
