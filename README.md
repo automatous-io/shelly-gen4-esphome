@@ -62,16 +62,16 @@ Pin assignments for every model, and the hardware findings behind them, are in t
 Stock device pages, no custom cards.
 
 <p align="center">
-  <img src="docs/images/ha-esphome-shelly-2pm-gen4-1.png" alt="Shelly 2PM Gen4 in Home Assistant: device info and both relays, each with its own mode and pulse length select" width="700">
+  <img src="docs/images/ha-esphome-shelly-2pm-gen4-1.png" alt="Shelly 2PM Gen4 in Home Assistant: device info and both relays, each with its own linking, mode, and pulse length select" width="700">
 </p>
 
-*The 2PM doubles the controls: two relays, each with its own mode and pulse length.*
+*The 2PM doubles the controls: two relays, each with its own linking, mode, and pulse length.*
 
 <p align="center">
-  <img src="docs/images/ha-esphome-shelly-2pm-gen4-2.png" alt="Shelly 2PM Gen4 per-channel current, power, and energy sensors with channel 2 under load, plus the button and switch inputs" width="440">
+  <img src="docs/images/ha-esphome-shelly-2pm-gen4-2.png" alt="Shelly 2PM Gen4 per-channel current, power, and energy sensors with no load, the per-channel Overcurrent and Overpower fault sensors with Overheating and Overvoltage, plus the button and switch inputs" width="300">
 </p>
 
-*And it meters each output separately. Here channel 2 carries a 143W load while channel 1 sits idle. Energy is a primary sensor on every metering model, so it feeds the Energy Dashboard.*
+*And it meters each output separately, with Overpower and Overcurrent faults per channel. Energy is a primary sensor on every metering model, so it feeds the Energy Dashboard.*
 
 <p align="center">
   <img src="docs/images/ha-esphome-shelly-1pm-gen4-2.png" alt="Shelly 1PM Gen4 diagnostic entities: voltage, mains frequency, and both temperatures" width="360">

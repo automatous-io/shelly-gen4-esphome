@@ -51,14 +51,17 @@ The 1PM adds live metering. Current, power, and energy sit with the controls, an
   <img src="images/ha-esphome-shelly-1pm-gen4-2.png" alt="Shelly 1PM Gen4 in Home Assistant: configuration and diagnostic entities including voltage and frequency" width="253">
 </p>
 
-The 2PM doubles the controls, with linking, mode, and pulse length selects per relay, and meters each output separately. Its faults are per channel, `Overpower 1` and `2` and `Overcurrent 1` and `2`, with `Overvoltage` and `Overheating` shared. Shown here with a 143W resistive load on O2:
+The 2PM doubles the controls, with linking, mode, and pulse length selects per relay, and meters each output separately. Its faults are per channel, `Overpower 1` and `2` and `Overcurrent 1` and `2`, with `Overvoltage` and `Overheating` shared. Shown here with relay 1 on and no load connected:
 
 <p>
-  <img src="images/ha-esphome-shelly-2pm-gen4-1.png" alt="Shelly 2PM Gen4 in Home Assistant: device info and the two relays with their mode and pulse length selects" width="700">
+  <img src="images/ha-esphome-shelly-2pm-gen4-1.png" alt="Shelly 2PM Gen4 in Home Assistant: device info and the two relays, relay 1 on, each with its linking, mode, and pulse length selects" width="700">
 </p>
 <p>
-  <img src="images/ha-esphome-shelly-2pm-gen4-2.png" alt="Shelly 2PM Gen4 in Home Assistant: per-channel current, energy, and power sensors with channel 2 under load, plus the button and switch inputs" width="330">
-  <img src="images/ha-esphome-shelly-2pm-gen4-3.png" alt="Shelly 2PM Gen4 in Home Assistant: configuration and diagnostic entities including frequency, both temperatures, and voltage" width="326">
+  <img src="images/ha-esphome-shelly-2pm-gen4-2.png" alt="Shelly 2PM Gen4 in Home Assistant: per-channel current, energy, and power sensors with no load, Overcurrent 1 and 2, Overpower 1 and 2, Overheating, and Overvoltage all OK, plus the button and switch inputs" width="300">
+</p>
+<p>
+  <img src="images/ha-esphome-shelly-2pm-gen4-3.png" alt="Shelly 2PM Gen4 in Home Assistant: the Bluetooth Proxy switch, Max Current 10A, Max Power 2400W, Max Voltage 280V, and the restart and factory reset buttons" width="273">
+  <img src="images/ha-esphome-shelly-2pm-gen4-4.png" alt="Shelly 2PM Gen4 in Home Assistant: diagnostic entities, free memory, largest free memory block, frequency, both temperatures, and voltage" width="318">
 </p>
 
 The EM Mini has the 1PM's metering entities and a `Button` sensor, with no relay, selects, or protections. `RTC Time` is diagnostic and shows what the battery-backed clock holds, or `not set` if it lost power. Shown here with a 141W resistive load through the CT clamp, and with the `Bluetooth Proxy` switch and memory sensors every model has from 1.4.0:
