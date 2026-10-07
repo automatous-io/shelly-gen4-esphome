@@ -14,10 +14,15 @@ ESPHome firmware and install path for Shelly Gen4 devices, built on the ESP-Shel
 Every supported model is verified on real hardware, and the metering models are calibrated against a reference meter.
 
 <p align="center">
-  <img src="docs/images/ha-esphome-shelly-1pm-gen4-1.png" alt="Shelly 1PM Gen4 running ESPHome in Home Assistant: device info, the relay with its mode and pulse length selects, and live current, power, energy, button, and switch input sensors under a 140W load" width="820">
+  <img src="docs/images/ha-esphome-shelly-plug-us-gen4-overpower-1.png" alt="Shelly Plug US Gen4 running ESPHome in Home Assistant: device info and controls, with the LED Ring lit green, the relay on, and the pulse length, relay linking, relay mode, and ring mode selects" width="820">
 </p>
 
-*A Shelly 1PM Gen4 after conversion, adopted in Home Assistant through the native API. The relay with its mode and pulse length, and the meter reading 139.9W and 1.18A off a 140W resistive load.*
+<p align="center">
+  <img src="docs/images/ha-esphome-shelly-plug-us-gen4-overpower-2.png" alt="Shelly Plug US Gen4 sensors: button, illuminance, illumination, and the meter reading 1.19A and 141.0W, with Overpower reporting a problem and Overcurrent, Overheating, and Overvoltage OK" width="300">
+  <img src="docs/images/ha-esphome-shelly-plug-us-gen4-overpower-3.png" alt="Shelly Plug US Gen4 configuration entities: the Bluetooth Proxy switch, Max Current 15A, Max Power 130W, Max Voltage 150V, and the restart and factory reset buttons" width="369">
+</p>
+
+*A Shelly Plug US Gen4 after conversion, adopted in Home Assistant through the native API. Max Power is set to 130W under a 140W lamp: the meter reads 141.0W and Overpower reports a problem, caught just as the protection trips. The protections are on every relay model from 1.5.0.*
 
 ---
 
