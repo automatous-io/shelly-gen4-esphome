@@ -331,7 +331,7 @@ i2c:
 
 sensor:
   # metering. the chip's gains stay at their defaults; calibration is a multiplier per
-  # reading (see "Calibrating the power meter" in README.md). power comes from the chip's
+  # reading (see docs/CALIBRATION.md). power comes from the chip's
   # own register, not from voltage × current, so it carries its own multiplier. the ADE7953
   # has no energy counter that ESPHome reads out, so energy is integrated from power below.
   - platform: ade7953_i2c

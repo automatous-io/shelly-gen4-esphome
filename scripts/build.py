@@ -31,7 +31,7 @@ of local file references (like the custom partition CSV) to keep working as remo
 for dashboard adoption.
 
 Run with no arguments to list buildable models. Needs the ESPHome venv active
-(see README).
+(see docs/BUILDING.md).
 """
 import argparse
 import importlib.util

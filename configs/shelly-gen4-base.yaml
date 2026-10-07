@@ -34,7 +34,7 @@ esp32:
     sdkconfig_options:
       # stock Shelly keeps the partition table at 0x10000, not IDF's default 0x8000.
       # without this the firmware installs but cannot find its partitions at boot.
-      # see "The partition system" in README.md
+      # see docs/PARTITIONS.md
       CONFIG_PARTITION_TABLE_OFFSET: "0x10000"
 
 # fallback hotspot + captive portal for first boot and whenever Wi-Fi is unreachable
@@ -138,7 +138,7 @@ button:
 
 # ships the stock partition table to every build, including adopted/remote builds
 # that have nothing but this repo's URL. removing this breaks every adopted device's
-# next rebuild. see "The partition system" in README.md
+# next rebuild. see docs/PARTITIONS.md
 external_components:
   - source: github://automatous-io/shelly-gen4-esphome@main
     components: [shelly_gen4_partition]

@@ -15,7 +15,7 @@ Download both artifacts from the [latest release](../../../releases/latest): `au
 
 ## Stock web UI
 
-Open the Shelly's stock web page, choose to install firmware from a file, and upload the zip. The stock installer verifies it, writes it, and reboots into ESPHome. Conversion is tested from stock firmware 1.7.5 and 2.0.0.
+Open the Shelly's stock web page, choose to install firmware from a file, and upload the zip. The stock installer verifies it, writes it, and reboots into ESPHome. Conversion is tested from stock firmware 1.7.5, 2.0.0, and 2.0.1.
 
 Then go to [First Boot and Adoption](ADOPTION.md).
 
