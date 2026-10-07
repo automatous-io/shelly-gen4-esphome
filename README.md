@@ -77,7 +77,7 @@ Stock device pages, no custom cards.
   <img src="docs/images/ha-esphome-shelly-1pm-gen4-2.png" alt="Shelly 1PM Gen4 diagnostic entities: voltage, mains frequency, and both temperatures" width="360">
 </p>
 
-*Voltage, mains frequency, and both temperatures are diagnostic, on every metering model.*
+*Voltage and mains frequency are diagnostic on every metering model, with both temperatures where the board has an NTC.*
 
 The non-metering models and the rest of the entities are in [First Boot and Adoption](docs/ADOPTION.md#in-home-assistant).
 
@@ -149,7 +149,7 @@ shelly-gen4-esphome/
 ├── components/
 │   └── shelly_gen4_partition/   External component that ships Shelly's stock partition tables.
 └── configs/
-    ├── shelly-gen4-base.yaml    Shared base: ESP32-C6, partitions, API, web server, OTA.
+    ├── shelly-gen4-base.yaml    Shared base: ESP32-C6, partitions, API, web server, OTA, Bluetooth proxy.
     ├── shelly-1-gen4.yaml       Relay, switch input, button, status LED.
     ├── shelly-1pm-gen4.yaml     Adds a BL0942 power meter and an NTC.
     ├── shelly-1-mini-gen4.yaml  Mini form factor, with an NTC.
