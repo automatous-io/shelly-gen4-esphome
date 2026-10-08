@@ -33,6 +33,7 @@ secrets.yaml
 # ESPHome build output
 .esphome/
 .installer-*.yaml
+.ci-*.yaml
 configs/.gitignore
 
 # Compiled artifacts

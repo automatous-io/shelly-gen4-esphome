@@ -1,0 +1,115 @@
+# Copyright 2026 basift
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Validates every config on each push/PR, so a merge error surfaces before a
+# tag is cut. `release.yml` only runs at tag time; this is the pre-merge gate.
+#
+# Two jobs:
+#   - config:  `esphome config` (fast) on every model config, plus
+#              safety-lockout.yaml combined with each model it supports.
+#   - compile: full `esphome compile` on the three safety-lockout combinations,
+#              the only new C++ (the lambdas in configs/safety-lockout.yaml).
+#              The base model configs already get a full compile from
+#              release.yml at tag time; repeating all seven here on every push
+#              would just double that cost without covering anything new.
+#
+# Runs in the same digest-pinned ESPHome container as release.yml, read out of
+# .devcontainer/Dockerfile rather than pinned again here.
+
+name: ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  toolchain:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read the pinned builder image
+        id: pin
+        run: |
+          image=$(sed -n 's|^FROM \(ghcr.io/esphome/esphome:.*\)$|\1|p' .devcontainer/Dockerfile)
+          test -n "$image" || { echo "no FROM ghcr.io/esphome/esphome line in .devcontainer/Dockerfile"; exit 1; }
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+  config:
+    needs: toolchain
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.toolchain.outputs.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        model:
+          - shelly-1-gen4
+          - shelly-1pm-gen4
+          - shelly-2pm-gen4
+          - shelly-1-mini-gen4
+          - shelly-1pm-mini-gen4
+          - shelly-plug-us-gen4
+          - shelly-em-mini-gen4
+    steps:
+      - uses: actions/checkout@v7
+      - name: esphome config ${{ matrix.model }}
+        working-directory: configs
+        run: esphome config ${{ matrix.model }}.yaml > /dev/null
+
+  config-safety-lockout:
+    needs: toolchain
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.toolchain.outputs.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model: shelly-1pm-gen4
+            override: ""
+          - model: shelly-1pm-mini-gen4
+            override: ""
+          - model: shelly-plug-us-gen4
+            override: |
+              substitutions:
+                safety_temperature_sensor_id: sensor_internal_temperature
+                safety_temperature_expr: "id(sensor_internal_temperature).raw_state"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Generate combined config
+        working-directory: configs
+        run: |
+          {
+            echo "packages:"
+            echo "  model: !include ${{ matrix.model }}.yaml"
+            echo "  safety_lockout: !include safety-lockout.yaml"
+            printf '%s\n' '${{ matrix.override }}'
+          } > .ci-safety-${{ matrix.model }}.yaml
+          cat .ci-safety-${{ matrix.model }}.yaml
+
+      - name: esphome config (safety-lockout + ${{ matrix.model }})
+        working-directory: configs
+        run: esphome config .ci-safety-${{ matrix.model }}.yaml > /dev/null
+
+      - name: esphome compile (safety-lockout + ${{ matrix.model }})
+        working-directory: configs
+        run: esphome compile .ci-safety-${{ matrix.model }}.yaml

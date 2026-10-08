@@ -320,6 +320,23 @@ binary_sensor:
     id: fault_overheating
     device_class: problem
 
+# The fault flags above are template binary_sensors with no lambda, so nothing
+# publishes them until the first fault or a relay turn-on: with no first publish
+# they have no state at all and Home Assistant shows "unknown" for them. Seed
+# them here instead, and only a flag that has never published, so a fault
+# already reported during setup is not cleared.
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - lambda: |-
+            if (!id(fault_overpower_1).has_state()) id(fault_overpower_1).publish_state(false);
+            if (!id(fault_overpower_2).has_state()) id(fault_overpower_2).publish_state(false);
+            if (!id(fault_overcurrent_1).has_state()) id(fault_overcurrent_1).publish_state(false);
+            if (!id(fault_overcurrent_2).has_state()) id(fault_overcurrent_2).publish_state(false);
+            if (!id(fault_overvoltage).has_state()) id(fault_overvoltage).publish_state(false);
+            if (!id(fault_overheating).has_state()) id(fault_overheating).publish_state(false);
+
 # ADE7953 power meter on I2C. One voltage channel, two current channels (A = relay 1,
 # B = relay 2). The Tasmota template drives a reset line on GPIO0; the meter comes up fine
 # with that pin left alone, so nothing drives it.

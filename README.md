@@ -107,6 +107,7 @@ Adoption points a small stub at this repository, so later improvements arrive on
 - Live metering on the PM models, the Plug US, and the EM Mini through its CT clamp: current, power, energy, voltage, and frequency, calibrated against a reference meter. Energy is a primary sensor so it feeds the Energy Dashboard.
 - The ESP32-C6's internal temperature on every model, plus the board NTC as Temperature where there is one.
 - Overpower, overcurrent, overvoltage, and overheating protection on the relay models, with the limits adjustable from Home Assistant. See [Customizing](docs/CUSTOMIZING.md#protections).
+- An optional [Safety Lockout](docs/SAFETY-LOCKOUT.md) package for the 1PM, 1PM Mini, and Plug US: a persistent latch that survives reboot, blocks the relay from every source while engaged, and re-checks current and power (not just voltage and temperature) before a reset is accepted.
 - On the Plug US: the RGB LED ring as a Home Assistant light with stock's power and relay state modes, and illuminance with a dark / twilight / bright reading.
 - A Bluetooth proxy on every model, so Home Assistant reaches Bluetooth devices through the ESP32-C6's radio. A `Bluetooth Proxy` switch turns it off at runtime.
 - Factory reset by a 5 second button hold, from Home Assistant, or from the device page.
@@ -129,6 +130,7 @@ Everything is in [`docs/`](docs/), with build [`scripts/`](scripts/) and the cha
 - [Installing](docs/INSTALL.md) — the web UI path, the slot rule, UART, and backing up stock
 - [First Boot and Adoption](docs/ADOPTION.md) — Wi-Fi setup, what lands in Home Assistant, and the adoption stub
 - [Customizing](docs/CUSTOMIZING.md) — every substitution, the stable ids, and package merging
+- [Safety Lockout](docs/SAFETY-LOCKOUT.md) — the optional persistent lockout package for the 1PM, 1PM Mini, and Plug US
 - [Calibrating the Power Meter](docs/CALIBRATION.md) — measuring the metering constants on your own unit
 - [Building](docs/BUILDING.md) — the dev container, a host venv, and what a build produces
 - [GPIO Map](docs/GPIO.md) — pin assignments per model and the hardware findings behind them

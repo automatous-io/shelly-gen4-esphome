@@ -38,11 +38,20 @@ packages:
 # conversion. without this both stay frozen until the device is power-cycled.
 esphome:
   on_boot:
-    priority: 1000
-    then:
-      - lambda: |-
-          gpio_hold_dis(GPIO_NUM_10);
-          gpio_hold_dis(GPIO_NUM_5);
+    - priority: 1000
+      then:
+        - lambda: |-
+            gpio_hold_dis(GPIO_NUM_10);
+            gpio_hold_dis(GPIO_NUM_5);
+    # The fault flag is a template binary_sensor with no lambda, so nothing
+    # publishes it until the first fault or a relay turn-on: with no first
+    # publish it has no state at all and Home Assistant shows "unknown" for it.
+    # Seed it here instead, and only if it has never published, so a fault
+    # already reported during setup is not cleared.
+    - priority: -100
+      then:
+        - lambda: |-
+            if (!id(fault_overheating).has_state()) id(fault_overheating).publish_state(false);
 
 # converted devices broadcast this URL. The ESPHome dashboard can offer adoption.
 # false keeps adopted stubs as references, every rebuild pulls updates from this repo.
