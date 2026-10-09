@@ -9,6 +9,22 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.5.1
+
+**Fixes a build failure coming with ESPHome 2026.10.0.** Affects the six relay models: the 1,
+1PM, 1 Mini, 1PM Mini, 2PM, and Plug US. The EM Mini is unchanged apart from the version string.
+
+- The overheat check read the temperature through `raw_state`, which ESPHome deprecated and
+  removes in 2026.10.0. On 2026.9 it compiled with a warning; on 2026.10.0 it would not compile.
+- It now reads the same value with `get_raw_state()`. Behavior is unchanged.
+- Adopted devices pick this up on their next rebuild.
+- Reported by [@Gionames](https://github.com/Gionames) in [#29](../../issues/29).
+- All seven models build on ESPHome 2026.8.2 and on 2026.10.0b2. Verified on the 1 and
+  the 2PM (both channels), which cover the die sensor and the NTC: each relay turns on and
+  stays on with no Overheating fault at normal temperature.
+
+---
+
 ## 1.5.0
 
 **Overpower, overcurrent, overvoltage, and overheating protection.** Affects the six relay
