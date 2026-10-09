@@ -48,7 +48,7 @@ switch:
     # turning on clears Overheating, unless the temperature is still over its limit
     on_turn_on:
       - lambda: |-
-          bool hot = id(sensor_internal_temperature).raw_state > ${max_temperature};
+          bool hot = id(sensor_internal_temperature).get_raw_state() > ${max_temperature};
           id(fault_overheating).publish_state(hot);
           if (hot) id(relay_1).turn_off();
       - if:

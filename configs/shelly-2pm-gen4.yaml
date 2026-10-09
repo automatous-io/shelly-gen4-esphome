@@ -67,7 +67,7 @@ switch:
     on_turn_on:
       - lambda: |-
           bool high = id(sensor_voltage).state > id(max_voltage_number).state;
-          bool hot = id(sensor_temperature).raw_state > ${max_temperature};
+          bool hot = id(sensor_temperature).get_raw_state() > ${max_temperature};
           id(fault_overpower_1).publish_state(false);
           id(fault_overcurrent_1).publish_state(false);
           id(fault_overvoltage).publish_state(high);
@@ -89,7 +89,7 @@ switch:
     on_turn_on:
       - lambda: |-
           bool high = id(sensor_voltage).state > id(max_voltage_number).state;
-          bool hot = id(sensor_temperature).raw_state > ${max_temperature};
+          bool hot = id(sensor_temperature).get_raw_state() > ${max_temperature};
           id(fault_overpower_2).publish_state(false);
           id(fault_overcurrent_2).publish_state(false);
           id(fault_overvoltage).publish_state(high);
