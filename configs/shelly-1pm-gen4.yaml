@@ -170,6 +170,7 @@ binary_sensor:
   # input to Home Assistant only, leaving the relay alone.
   - platform: gpio
     name: "Switch Input"
+    id: switch_input
     pin: GPIO10
     filters:
       - delayed_on_off: ${input_debounce}
@@ -183,6 +184,7 @@ binary_sensor:
   # onboard button: short press toggles the relay, long hold factory resets
   - platform: gpio
     name: "Button"
+    id: onboard_button
     pin:
       number: GPIO1
       inverted: true

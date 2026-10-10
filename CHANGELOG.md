@@ -9,6 +9,27 @@ a rebuild that only bumps the version string is easy to tell apart from a real c
 
 ---
 
+## 1.5.2
+
+**Ids on the switch inputs, the onboard button, and two base entities, so a stub can `!extend`
+or `!remove` them.** Affects all seven models. Nothing changes on the device.
+
+- `Switch Input` is now `switch_input` on the 1, 1 Mini, 1PM, and 1PM Mini, and
+  `switch_input_1` / `switch_input_2` on the 2PM. `Button` is `onboard_button` on every model.
+- In the base, `Restart` is `btn_restart`, and the block holding both free memory sensors is
+  `sensor_debug`. The full list is in
+  [Customizing](docs/CUSTOMIZING.md#package-merging-and-stable-ids).
+- Entity names are unchanged, so nothing is renamed in Home Assistant.
+- A stub that already declares one of these ids for its own entity stops building with
+  `ID ... redefined`; rename the id in the stub.
+- Adopted devices pick this up on their next rebuild.
+- Requested by [@Gionames](https://github.com/Gionames) in [#28](../../issues/28).
+- All seven models build on ESPHome 2026.8.2. Verified on the 1, 1PM Mini, 2PM (both inputs),
+  EM Mini, and Plug US: the switch inputs and the button behave as before. A stub extending
+  `switch_input` with an `on_release` builds against the 1PM Mini.
+
+---
+
 ## 1.5.1
 
 **Fixes a build failure coming with ESPHome 2026.10.0.** Affects the six relay models: the 1,
