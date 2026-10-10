@@ -186,6 +186,7 @@ binary_sensor:
   # Unlinked reports presses to Home Assistant only, leaving the relay alone.
   - platform: gpio
     name: "Button"
+    id: onboard_button
     pin:
       number: GPIO7
       inverted: true

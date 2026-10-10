@@ -59,6 +59,7 @@ binary_sensor:
   # onboard button: reported to Home Assistant, long hold factory resets
   - platform: gpio
     name: "Button"
+    id: onboard_button
     pin:
       number: GPIO22
       inverted: true

@@ -23,7 +23,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: automatous-io.${device_name}
-    version: "1.5.1"
+    version: "1.6.0"
 
 esp32:
   board: esp32-c6-devkitm-1
@@ -122,6 +122,7 @@ sensor:
     name: "Internal Temperature"
     id: sensor_internal_temperature
   - platform: debug
+    id: sensor_debug
     free:
       name: "Free Memory"
       entity_category: diagnostic
@@ -132,6 +133,7 @@ sensor:
 button:
   - platform: restart
     name: "Restart"
+    id: btn_restart
   - platform: factory_reset
     name: "Factory Reset"
     id: btn_factory_reset

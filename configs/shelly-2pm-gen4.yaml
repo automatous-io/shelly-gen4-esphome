@@ -250,6 +250,7 @@ binary_sensor:
   # linking select.
   - platform: gpio
     name: "Switch Input 1"
+    id: switch_input_1
     pin: GPIO11
     filters:
       - delayed_on_off: ${input_debounce}
@@ -263,6 +264,7 @@ binary_sensor:
   # S2 terminal; toggles relay 2 when the input turns on
   - platform: gpio
     name: "Switch Input 2"
+    id: switch_input_2
     pin: GPIO10
     filters:
       - delayed_on_off: ${input_debounce}
@@ -277,6 +279,7 @@ binary_sensor:
   # GPIO12 comes from the ESPHome Devices page only; the Tasmota template has no button.
   - platform: gpio
     name: "Button"
+    id: onboard_button
     pin:
       number: GPIO12
       inverted: true
